@@ -480,13 +480,8 @@ void GazeboRosDepthCamera::PublishDisparityImage(const DepthImage& depth, ros::T
 }
 */
 
-void GazeboRosOpenniKinect::sensorOnOffCallback(const std_msgs::String::ConstPtr& msg) {
-  if (strcmp(msg->data.c_str(), "on")==0) {
-    this->sensor_on_=true;
-  }
-  else if (strcmp(msg->data.c_str(), "off")==0) {
-    this->sensor_on_=false;
-  }
+void GazeboRosOpenniKinect::sensorOnOffCallback(const std_msgs::Bool::ConstPtr& msg) {
+  this->sensor_on_ = msg->data;
 }
 
 }

@@ -224,7 +224,7 @@ namespace gazebo {
 			this->get_model_state_sub = this->rosNode->subscribe(get_model_state_so);
 
 			ros::SubscribeOptions kinect_onoff_so = 
-				ros::SubscribeOptions::create<std_msgs::String>(
+				ros::SubscribeOptions::create<std_msgs::Bool>(
 						"/sensor/kinect/onoff",
 						1,
 						boost::bind(&EnergyMonitorPlugin::OnKinectOnOffMsg, this, _1),
@@ -349,21 +349,19 @@ namespace gazebo {
 			lock.unlock();
 		}
 
-		void OnKinectOnOffMsg(const std_msgs::StringConstPtr &msg) {
+		void OnKinectOnOffMsg(const std_msgs::BoolConstPtr &msg) {
 			lock.lock();
-			auto s = msg->data.c_str();
-			if (strcmp(s, "on") == 0) {
+			auto s = msg->data;
+			if (s) {
 #ifdef ENERGY_MONITOR_DEBUG
 				gzdbg << "kinect on" << "\n";
 #endif
 				kinectState = USED;
-			} else if (strcmp(s, "off") == 0) {
+			} else {
 #ifdef ENERGY_MONITOR_DEBUG
 				gzdbg << "kinect off" << "\n";
 #endif
 				kinectState = UNUSED;
-			} else {
-				gzerr << "invalid kinect on/off string: " << s << "\n";
 			}
 			lock.unlock();
 		}
