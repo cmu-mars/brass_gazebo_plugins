@@ -40,7 +40,9 @@ else()
   message(FATAL_ERROR "pkg-config is required; please install it")
 endif()
 
-find_package(Boost REQUIRED COMPONENTS thread)
+find_package(Boost REQUIRED COMPONENTS system thread)
+
+find_package(ignition-math2 REQUIRED)
 
 execute_process(COMMAND
   pkg-config --variable=plugindir OGRE
@@ -63,6 +65,7 @@ include_directories(include
   ${OGRE_INCLUDE_DIRS}
   ${OGRE-Terrain_INCLUDE_DIRS}
   ${OGRE-Paging_INCLUDE_DIRS}
+  ${IGNITION-MATH2_INCLUDE_DIRS}
 )
 
 link_directories(
@@ -70,12 +73,15 @@ link_directories(
   ${OGRE_LIBRARY_DIRS}
   ${OGRE-Terrain_LIBRARY_DIRS}
   ${OGRE-Paging_LIBRARY_DIRS}
+  ${Boost_LIBRARYY_DIRS}
 )
 
 
 if (NOT GAZEBO_VERSION VERSION_LESS 7.3)
   catkin_package(INCLUDE_DIRS include LIBRARIES gazebo_ros_harness)
 endif()
+
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS} ${IGNITION-MATH2_CXX_FLAGS} -std=c++11")
 
 catkin_package(
   INCLUDE_DIRS include
@@ -86,6 +92,7 @@ catkin_package(
 #  gazebo_ros_camera 
 #  gazebo_ros_depth_camera 
   gazebo_ros_openni_kinect  
+  energy_monitor
 #  gazebo_ros_laser 
 #  gazebo_ros_block_laser 
 #  gazebo_ros_bumper
@@ -157,6 +164,9 @@ add_definitions(-fPIC) # what is this for?
 add_library(gazebo_ros_openni_kinect src/gazebo_ros_openni_kinect.cpp)
 add_dependencies(gazebo_ros_openni_kinect ${PROJECT_NAME}_gencfg)
 target_link_libraries(gazebo_ros_openni_kinect gazebo_ros_camera_utils DepthCameraPlugin ${catkin_LIBRARIES})
+
+add_library(energy_monitor SHARED src/energy_monitor.cc)
+target_link_libraries(energy_monitor ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES})
 
 #add_library(gazebo_ros_gpu_laser src/gazebo_ros_gpu_laser.cpp)
 #target_link_libraries(gazebo_ros_gpu_laser ${catkin_LIBRARIES} GpuRayPlugin)
