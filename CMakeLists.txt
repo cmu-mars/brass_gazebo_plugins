@@ -91,8 +91,9 @@ catkin_package(
 #  gazebo_ros_camera_utils 
 #  gazebo_ros_camera 
 #  gazebo_ros_depth_camera 
-  gazebo_ros_openni_kinect  
-  energy_monitor
+   gazebo_ros_openni_kinect  
+   gazebo_ros_battery
+   gazebo_ros_headlamp
 #  gazebo_ros_laser 
 #  gazebo_ros_block_laser 
 #  gazebo_ros_bumper
@@ -126,58 +127,19 @@ catkin_package(
 )
 add_dependencies(${PROJECT_NAME}_gencfg ${catkin_EXPORTED_TARGETS})
 
-## Executables
-#add_executable(hokuyo_node src/hokuyo_node.cpp)
-#add_dependencies(hokuyo_node ${PROJECT_NAME}_gencfg)
-#target_link_libraries(hokuyo_node
-#  ${catkin_LIBRARIES}
-#)
-
-#add_library(gazebo_ros_utils src/gazebo_ros_utils.cpp)
-#target_link_libraries(gazebo_ros_utils ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-
-#add_library(vision_reconfigure src/vision_reconfigure.cpp)
-#add_dependencies(vision_reconfigure ${PROJECT_NAME}_gencfg)
-#target_link_libraries(vision_reconfigure ${catkin_LIBRARIES})
-
-#add_executable(camera_synchronizer src/camera_synchronizer.cpp)
-#add_dependencies(camera_synchronizer ${PROJECT_NAME}_gencfg)
-#target_link_libraries(camera_synchronizer vision_reconfigure ${catkin_LIBRARIES})
 
 add_definitions(-fPIC) # what is this for?
 
-## Plugins
-#add_library(gazebo_ros_camera_utils src/gazebo_ros_camera_utils.cpp)
-#add_dependencies(gazebo_ros_camera_utils ${PROJECT_NAME}_gencfg)
-#target_link_libraries(gazebo_ros_camera_utils ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-
-
-#add_library(gazebo_ros_camera src/gazebo_ros_camera.cpp)
-#add_dependencies(gazebo_ros_camera ${PROJECT_NAME}_gencfg)
-#target_link_libraries(gazebo_ros_camera gazebo_ros_camera_utils CameraPlugin ${catkin_LIBRARIES})
-
-
-#add_library(gazebo_ros_depth_camera src/gazebo_ros_depth_camera.cpp)
-#add_dependencies(gazebo_ros_depth_camera ${PROJECT_NAME}_gencfg)
-#target_link_libraries(gazebo_ros_depth_camera gazebo_ros_camera_utils DepthCameraPlugin ${catkin_LIBRARIES})
 
 add_library(gazebo_ros_openni_kinect src/gazebo_ros_openni_kinect.cpp)
 add_dependencies(gazebo_ros_openni_kinect ${PROJECT_NAME}_gencfg)
 target_link_libraries(gazebo_ros_openni_kinect gazebo_ros_camera_utils DepthCameraPlugin ${catkin_LIBRARIES})
 
-add_library(energy_monitor SHARED src/energy_monitor.cc)
-target_link_libraries(energy_monitor ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES})
+add_library(gazebo_ros_battery SHARED src/energy_monitor.cc)
+target_link_libraries(gazebo_ros_battery ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES})
 
-#add_library(gazebo_ros_gpu_laser src/gazebo_ros_gpu_laser.cpp)
-#target_link_libraries(gazebo_ros_gpu_laser ${catkin_LIBRARIES} GpuRayPlugin)
-
-
-#add_library(gazebo_ros_laser src/gazebo_ros_laser.cpp)
-#target_link_libraries(gazebo_ros_laser RayPlugin ${catkin_LIBRARIES})
-
-#add_library(gazebo_ros_block_laser src/gazebo_ros_block_laser.cpp)
-#target_link_libraries(gazebo_ros_block_laser RayPlugin ${catkin_LIBRARIES})
-
+add_library(gazebo_ros_headlamp src/control_light.cc)
+target_link_libraries(gazebo_ros_headlamp ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES} ${roscpp_LIBRARIES} ${IGNITION-MATH_LIBRARIES})
 
 
 ##
@@ -197,6 +159,8 @@ install(TARGETS
 #  gazebo_ros_camera
 #  gazebo_ros_depth_camera
   gazebo_ros_openni_kinect
+  gazebo_ros_battery
+  gazebo_ros_headlamp
 #  gazebo_ros_openni_kinect
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
