@@ -108,6 +108,11 @@ void GazeboRosOpenniKinect::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sd
   else
     this->sensor_on_ = _sdf->GetElement("startState")->Get<bool>();
 
+  if (!_sdf->HasElement("depthImageCameraState"))
+    this->depth_image_on_ = true;
+  else
+    this->depth_image_on_ = _sdf->GetElement("depthImageCameraState")->Get<bool>();
+
   load_connection_ = GazeboRosCameraUtils::OnLoad(boost::bind(&GazeboRosOpenniKinect::Advertise, this));
   GazeboRosCameraUtils::Load(_parent, _sdf);
 }
@@ -138,6 +143,7 @@ void GazeboRosOpenniKinect::Advertise()
         ros::VoidPtr(), &this->camera_queue_);
   this->depth_image_camera_info_pub_ = this->rosnode_->advertise(depth_image_camera_info_ao);
   this->kinect_onoff_sub_ = this->rosnode_->subscribe("/sensor/kinect/onoff", 10, &GazeboRosOpenniKinect::sensorOnOffCallback, this);
+  this->depth_image_onoff_sub_ = this->rosnode->subscribe("/sensor/kinect/depth/onoff", 10, &GazeboRosOpenniKinect::depthImageOnOffCallback, this);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -191,7 +197,7 @@ void GazeboRosOpenniKinect::OnNewDepthFrame(const float *_image,
     unsigned int _width, unsigned int _height, unsigned int _depth,
     const std::string &_format)
 {
-  if (!this->initialized_ || this->height_ <=0 || this->width_ <=0)
+  if (!this->initialized_ || this->height_ <=0 || this->width_ <=0 || !this->depth_image_on_)
     return;
 
   this->depth_sensor_update_time_ = this->parentSensor->LastMeasurementTime();
@@ -261,23 +267,23 @@ void GazeboRosOpenniKinect::OnNewImageFrame(const unsigned char *_image,
 void GazeboRosOpenniKinect::FillPointdCloud(const float *_src)
 {
   this->lock_.lock();
+  if (this->depth_image_on_) {
+    this->point_cloud_msg_.header.frame_id = this->frame_name_;
+    this->point_cloud_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
+    this->point_cloud_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
+    this->point_cloud_msg_.width = this->width;
+    this->point_cloud_msg_.height = this->height;
+    this->point_cloud_msg_.row_step = this->point_cloud_msg_.point_step * this->width;
 
-  this->point_cloud_msg_.header.frame_id = this->frame_name_;
-  this->point_cloud_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
-  this->point_cloud_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
-  this->point_cloud_msg_.width = this->width;
-  this->point_cloud_msg_.height = this->height;
-  this->point_cloud_msg_.row_step = this->point_cloud_msg_.point_step * this->width;
+    ///copy from depth to point cloud message
+    FillPointCloudHelper(this->point_cloud_msg_,
+                   this->height,
+                   this->width,
+                   this->skip_,
+                   (void*)_src );
 
-  ///copy from depth to point cloud message
-  FillPointCloudHelper(this->point_cloud_msg_,
-                 this->height,
-                 this->width,
-                 this->skip_,
-                 (void*)_src );
-
-  this->point_cloud_pub_.publish(this->point_cloud_msg_);
-
+    this->point_cloud_pub_.publish(this->point_cloud_msg_);
+  }
   this->lock_.unlock();
 }
 
@@ -286,20 +292,21 @@ void GazeboRosOpenniKinect::FillPointdCloud(const float *_src)
 void GazeboRosOpenniKinect::FillDepthImage(const float *_src)
 {
   this->lock_.lock();
-  // copy data into image
-  this->depth_image_msg_.header.frame_id = this->frame_name_;
-  this->depth_image_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
-  this->depth_image_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
+  if (this->depth_image_on_) {}
+    // copy data into image
+    this->depth_image_msg_.header.frame_id = this->frame_name_;
+    this->depth_image_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
+    this->depth_image_msg_.header.stamp.nsec = this->depth_sensor_update_time_.nsec;
 
-  ///copy from depth to depth image message
-  FillDepthImageHelper(this->depth_image_msg_,
-                 this->height,
-                 this->width,
-                 this->skip_,
-                 (void*)_src );
+    ///copy from depth to depth image message
+    FillDepthImageHelper(this->depth_image_msg_,
+                   this->height,
+                   this->width,
+                   this->skip_,
+                   (void*)_src );
 
-  this->depth_image_pub_.publish(this->depth_image_msg_);
-
+    this->depth_image_pub_.publish(this->depth_image_msg_);
+  }
   this->lock_.unlock();
 }
 
@@ -438,7 +445,7 @@ void GazeboRosOpenniKinect::PublishCameraInfo()
   ROS_DEBUG_NAMED("openni_kinect", "publishing default camera info, then openni kinect camera info");
   GazeboRosCameraUtils::PublishCameraInfo();
 
-  if (this->depth_info_connect_count_ > 0)
+  if (this->depth_info_connect_count_ > 0 && this->depth_image_on_)
   {
     this->sensor_update_time_ = this->parentSensor_->LastMeasurementTime();
     common::Time cur_time = this->world_->GetSimTime();
@@ -482,6 +489,10 @@ void GazeboRosDepthCamera::PublishDisparityImage(const DepthImage& depth, ros::T
 
 void GazeboRosOpenniKinect::sensorOnOffCallback(const std_msgs::Bool::ConstPtr& msg) {
   this->sensor_on_ = msg->data;
+}
+
+void GazeboRosOpenniKinect::depthImageOnOffCallback(const std_msgs::Bool::ConstPtr& msg) {
+  this->depth_image_on_ = msg->data;
 }
 
 }

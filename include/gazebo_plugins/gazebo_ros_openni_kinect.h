@@ -145,6 +145,10 @@ namespace gazebo
     protected: bool sensor_on_;
     private: ros::Subscriber kinect_onoff_sub_;
     protected: void sensorOnOffCallback(const std_msgs::Bool::ConstPtr& msg);
+
+    protected: bool depth_image_on_;
+    private: ros::Subscriber depth_image_onoff_sub_;
+    protected: void depthImageOnOffCallback(const:std_msgs::Bool::ConstPtr& msg);
   };
 
 }
