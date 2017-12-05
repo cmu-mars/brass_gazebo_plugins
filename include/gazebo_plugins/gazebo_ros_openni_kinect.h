@@ -148,7 +148,7 @@ namespace gazebo
 
     protected: bool depth_image_on_;
     private: ros::Subscriber depth_image_onoff_sub_;
-    protected: void depthImageOnOffCallback(const:std_msgs::Bool::ConstPtr& msg);
+    protected: void depthImageOnOffCallback(const std_msgs::Bool::ConstPtr& msg);
   };
 
 }

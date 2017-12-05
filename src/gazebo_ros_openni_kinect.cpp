@@ -143,7 +143,7 @@ void GazeboRosOpenniKinect::Advertise()
         ros::VoidPtr(), &this->camera_queue_);
   this->depth_image_camera_info_pub_ = this->rosnode_->advertise(depth_image_camera_info_ao);
   this->kinect_onoff_sub_ = this->rosnode_->subscribe("/sensor/kinect/onoff", 10, &GazeboRosOpenniKinect::sensorOnOffCallback, this);
-  this->depth_image_onoff_sub_ = this->rosnode->subscribe("/sensor/kinect/depth/onoff", 10, &GazeboRosOpenniKinect::depthImageOnOffCallback, this);
+  this->depth_image_onoff_sub_ = this->rosnode_->subscribe("/sensor/kinect/depth/onoff", 10, &GazeboRosOpenniKinect::depthImageOnOffCallback, this);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -292,7 +292,7 @@ void GazeboRosOpenniKinect::FillPointdCloud(const float *_src)
 void GazeboRosOpenniKinect::FillDepthImage(const float *_src)
 {
   this->lock_.lock();
-  if (this->depth_image_on_) {}
+  if (this->depth_image_on_) {
     // copy data into image
     this->depth_image_msg_.header.frame_id = this->frame_name_;
     this->depth_image_msg_.header.stamp.sec = this->depth_sensor_update_time_.sec;
