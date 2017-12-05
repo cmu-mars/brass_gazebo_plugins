@@ -76,6 +76,11 @@ namespace gazebo
                 }
             }
 
+            ~ControlLight() {
+                this->mRosNode->shutdown();
+                this->mRosNode.reset();
+            }
+
             void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
                 // Store the pointer to the model
                 this->mModel = _parent;
@@ -91,8 +96,9 @@ namespace gazebo
                 this->mUpdateConnection = event::Events::ConnectWorldUpdateBegin(
                     boost::bind(&ControlLight::OnUpdate, this, _1));
 
+                this->mRosNode.reset (new ros::NodeHandle(this->mModel->GetName() + "/headlamp"));
                 // Initialize ros, if it has not already bee initialized.
-                if (!ros::isInitialized()) {
+/*                if (!ros::isInitialized()) {
                     int argc = 0;
                     char **argv = NULL;
                     ros::init(argc, argv, "gazebo_client",
@@ -101,7 +107,7 @@ namespace gazebo
 
                 // Create our ROS node. This acts in a similar manner to
                 // the Gazebo node
-                this->mRosNode.reset(new ros::NodeHandle("gazebo_client"));
+                this->mRosNode.reset(new ros::NodeHandle("gazebo_client"));*/
 
                 // Create a named topic, and subscribe to it.
                 // Command line to send the message
