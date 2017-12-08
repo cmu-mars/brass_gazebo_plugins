@@ -36,44 +36,29 @@ namespace gazebo
             std::thread mRosQueueThread;
 
             // Whether to show the light or not
-            bool mShowLight;
+            bool mShowLight = false;
 
             // Pointer to the light in the world
             physics::LightPtr mLightPtr;
 
             // Name of the light
-            std::string mLightName;
+            std::string mLightName = "Turtlebot_headlamp";
 
             // Which model to attach the light
-            std::string mAttchedModel;
+            std::string mAttchedModel = "mobile_base";
 
             // Height of the light
-            double mHeightOffset;
+            double mHeightOffset = 1;
 
             // ROS topic for this plugin
-            std::string mRosTopic;
-
-            // Debug message flag
-            bool mDebug;
+            std::string mRosTopic = "/toggle_headlamp";
 
             // Debug message flag for deeper debug
-            bool mDebugMore;
+            bool mDebugMore = false;
 
         public:
-            ControlLight(): mModel(NULL), 
-                        mUpdateConnection(NULL),
-                        mShowLight(false),
-                        mLightPtr (NULL),
-                        mLightName("Turtlebot_headlamp"),
-                        mAttchedModel("mobile_base"),
-                        mHeightOffset(1),
-                        mRosTopic("/toggle_headlamp"),
-                        mDebug(true),
-                        mDebugMore(false) {
-                if (mDebug) {
-                    printf("Plugin ControlLight Initialized\n");
-                    printf("Show Light = %d\n", mShowLight);
-                }
+            ControlLight(): ModelPlugin() {
+                ROS_INFO_STREAM("BRASS Headlamp loaded");
             }
 
             ~ControlLight() {
@@ -83,13 +68,9 @@ namespace gazebo
 
             void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
                 // Store the pointer to the model
-                this->mModel = _parent;
-                
-                if (mDebug) {
-                    printf("Loading ControlLight Plugin\n");
-                    printf("Plugin attched to model %s\n",
-                            (this->mModel->GetName()).c_str());
-                }
+                this->mModel = _parent; 
+                ROS_INFO_STREAM("BRASS Headlamp attached to model " << this->mModel/*->GetName().c_str()*/);
+            
       
                 // Listen to the update event. This event is broadcast every
                 // simulation iteration.
@@ -139,13 +120,13 @@ namespace gazebo
             // TODO BUG consitency issues between GUI 
             // and command line control of light
             void OnRosMsg(const std_msgs::BoolConstPtr &_msg) {
-                if (mDebug) printf("Entered ControlLight::OnRosMsg\n");
+                gzdbg << "Entered ControlLight::OnRosMessage";
 	
 	            mShowLight = _msg->data;
 	            physics::WorldPtr worldPtr = this->mModel->GetWorld();
             
                 if (mShowLight) {
-                    if (mDebug) printf("Adding Light\n");
+                    gzdbg << "Adding Light\n";
 
                     sdf::SDF point;
 
@@ -184,7 +165,7 @@ namespace gazebo
                     assert(mLightPtr != NULL);
                     mLightPtr->PlaceOnEntity(mAttchedModel);
                 } else if (mLightPtr != NULL) {
-                    if (mDebug) printf("Deleting Light\n");
+                    gzdbg << "Deleting Light\n";
 
                     // TODO Explore these APIs rather than deleting the model
                     // mLightPtr->ProcessMsg(msg);
@@ -197,10 +178,8 @@ namespace gazebo
                     assert(false);
                 }
 
-                if (mDebug) {
-		            unsigned int light_count = worldPtr->Lights().size();
-      	            printf("Light count = %d\n", light_count);
-                }
+                gzdbg << "Light count = " << worldPtr->Lights().size();
+                
             }
 
             /* // TODO Customize sdf string
