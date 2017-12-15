@@ -571,7 +571,7 @@ void GazeboRosCameraUtils::PutCameraData(const unsigned char *_src,
 
 void GazeboRosCameraUtils::PutCameraData(const unsigned char *_src)
 {
-  if (!this->initialized_ || this->height_ <=0 || this->width_ <=0)
+  if (!this->initialized_ || this->height_ <=0 || this->width_ <=0 || !this->should_publish_)
     return;
 
   /// don't bother if there are no subscribers

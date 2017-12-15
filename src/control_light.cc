@@ -12,6 +12,7 @@
 #include "gazebo_msgs/SetModelState.h"
 #include "gazebo_msgs/GetModelState.h" 
 #include "gazebo_msgs/ModelState.h"
+#include "brass_gazebo_plugins/ToggleHeadlamp.h"
 
 namespace gazebo
 {
@@ -28,6 +29,8 @@ namespace gazebo
 
             // A ROS subscriber
             ros::Subscriber mRosSub;
+
+            ros::ServiceServer mRosSrv;
 
             // A ROS callbackqueue that helps process messages
             ros::CallbackQueue mRosQueue;
@@ -78,28 +81,31 @@ namespace gazebo
                     boost::bind(&ControlLight::OnUpdate, this, _1));
 
                 this->mRosNode.reset (new ros::NodeHandle(this->mModel->GetName() + "/headlamp"));
+                ROS_INFO_STREAM("Topic: " << this->mModel->GetName() << mRosTopic);
                 // Initialize ros, if it has not already bee initialized.
-/*                if (!ros::isInitialized()) {
-                    int argc = 0;
-                    char **argv = NULL;
-                    ros::init(argc, argv, "gazebo_client",
-                    ros::init_options::NoSigintHandler);
-                }
 
-                // Create our ROS node. This acts in a similar manner to
-                // the Gazebo node
-                this->mRosNode.reset(new ros::NodeHandle("gazebo_client"));*/
 
                 // Create a named topic, and subscribe to it.
                 // Command line to send the message
                 // rostopic pub /ground_plane_0/toggle_light std_msgs/Empty
-                ros::SubscribeOptions so =
-                    ros::SubscribeOptions::create<std_msgs::Bool>(
-                    "/" + this->mModel->GetName() + mRosTopic, 1,
-                    boost::bind(&ControlLight::OnRosMsg, this, _1),
-                    ros::VoidPtr(), &this->mRosQueue);
+                // ros::SubscribeOptions so =
+                //     ros::SubscribeOptions::create<std_msgs::Bool>(
+                //     "/" + this->mModel->GetName() + mRosTopic, 1,
+                //     boost::bind(&ControlLight::OnRosMsg, this, _1),
+                //     ros::VoidPtr(), &this->mRosQueue);
        
-                this->mRosSub = this->mRosNode->subscribe(so);
+                // this->mRosSub = this->mRosNode->subscribe(so);
+                // ros::ServiceServer headlamp = 
+                //     this->mRosNode->advertiseService<brass_gazebo_plugins::ToggleHeadlamp::Request,brass_gazebo_plugins::ToggleHeadlamp::Response>
+                //                             ("/gazebo/toggle_headlamp", 
+                //                             boost::bind(&ControlLight::ToggleHeadlamp, this, 
+                //                             (brass_gazebo_plugins::ToggleHeadlamp::Request& )_1,
+                //                             (brass_gazebo_plugins::ToggleHeadlamp::Response& )_2));
+                ros::ServiceServer headlamp =
+                    this->mRosNode->advertiseService("/mobile_base/headlamp",
+                                    &ControlLight::ToggleHeadlamp, this);
+
+                this->mRosSrv = headlamp;
 
                 // Spin up the queue helper thread.
                 this->mRosQueueThread =
@@ -113,17 +119,19 @@ namespace gazebo
                     // TODO explore this APIs.
                     //mLightPtr->PlaceOnEntity(mAttchedModel);
 	            }
+    
             }
 
+            bool ToggleHeadlamp(brass_gazebo_plugins::ToggleHeadlamp::Request& req,
+                                brass_gazebo_plugins::ToggleHeadlamp::Response& res) {
+                mShowLight = req.enablement;
+                res.result = this->doToggle(mShowLight);
+                return res.result;
+            }
 
-            // Handle an incoming message from ROS
-            // TODO BUG consitency issues between GUI 
-            // and command line control of light
-            void OnRosMsg(const std_msgs::BoolConstPtr &_msg) {
-                gzdbg << "Entered ControlLight::OnRosMessage";
-	
-	            mShowLight = _msg->data;
-	            physics::WorldPtr worldPtr = this->mModel->GetWorld();
+            bool doToggle(bool mShowLight) {
+                ROS_INFO_STREAM("Toggling the Headlamp(" << mShowLight << ")");
+                physics::WorldPtr worldPtr = this->mModel->GetWorld();
             
                 if (mShowLight) {
                     gzdbg << "Adding Light\n";
@@ -131,37 +139,37 @@ namespace gazebo
                     sdf::SDF point;
 
                     // TODO make values custmizable e.g., use mLightName
-		            point.SetFromString("<?xml version='1.0' ?>\
-			            <sdf version='1.6'>\
-  			            <!-- Light Source -->\
-  			            <light name='Turtlebot_light' type='point'>\
-      				            <pose>1 1 1 0 0 0</pose>\
-      				            <diffuse>0.5 0.5 0.5 1</diffuse>\
-      				            <specular>0.1 0.1 0.1 1</specular>\
-     				            <attenuation>\
-        				            <range>20</range>\
-        				            <constant>0.5</constant>\
-        				            <linear>0.01</linear>\
-        				            <quadratic>0.001</quadratic>\
-      				            </attenuation>\
-      				            <cast_shadows>0</cast_shadows>\
-  			            </light>\
-			            </sdf>");
+                    point.SetFromString("<?xml version='1.0' ?>\
+                        <sdf version='1.6'>\
+                        <!-- Light Source -->\
+                        <light name='Turtlebot_headlamp' type='point'>\
+                                <pose>1 1 1 0 0 0</pose>\
+                                <diffuse>0.5 0.5 0.5 1</diffuse>\
+                                <specular>0.1 0.1 0.1 1</specular>\
+                                <attenuation>\
+                                    <range>20</range>\
+                                    <constant>0.5</constant>\
+                                    <linear>0.01</linear>\
+                                    <quadratic>0.001</quadratic>\
+                                </attenuation>\
+                                <cast_shadows>0</cast_shadows>\
+                        </light>\
+                        </sdf>");
 
-		            sdf::ElementPtr light = point.Root()->GetElement("light");
-		            msgs::Light msg = gazebo::msgs::LightFromSDF(light);
-		
-		            transport::NodePtr node(new transport::Node());
-		            node->Init(worldPtr->GetName());
+                    sdf::ElementPtr light = point.Root()->GetElement("light");
+                    msgs::Light msg = gazebo::msgs::LightFromSDF(light);
+        
+                    transport::NodePtr node(new transport::Node());
+                    node->Init(worldPtr->GetName());
 
-		            transport::PublisherPtr lightPub 
-			            = node->Advertise<msgs::Light>("~/factory/light");
-		            lightPub->Publish(msg);
+                    transport::PublisherPtr lightPub 
+                        = node->Advertise<msgs::Light>("~/factory/light");
+                    lightPub->Publish(msg);
                 
-                    // Hack Make sure light is attached to the model.
-                    sleep(5);
+                    while ((mLightPtr = worldPtr->Light(mLightName)) == NULL) {
+                        sleep(0.5);
+                    }
 
-                    mLightPtr = worldPtr->Light(mLightName);
                     assert(mLightPtr != NULL);
                     mLightPtr->PlaceOnEntity(mAttchedModel);
                 } else if (mLightPtr != NULL) {
@@ -175,13 +183,21 @@ namespace gazebo
                     worldPtr->RemoveModel(mLightName);
                     mLightPtr = NULL;
                 } else {
-                    assert(false);
+                    return false;
                 }
 
                 gzdbg << "Light count = " << worldPtr->Lights().size();
-                
+                return true;
             }
 
+            // Handle an incoming message from ROS
+            // TODO BUG consitency issues between GUI 
+            // and command line control of light
+            void OnRosMsg(const std_msgs::BoolConstPtr &_msg) {
+                 ROS_INFO_STREAM("Entered ControlLight::OnRosMessage");
+	
+                 this->doToggle(_msg->data);
+            }
             /* // TODO Customize sdf string
             private std::string GetSDFForLight() {
                 math::Pose pose = GetRobotLocation();
@@ -216,6 +232,34 @@ namespace gazebo
             }*/
 
         private:
+
+            void QuatToEuler(const double x, const double y, const double z, const double w, double *rotx,  double *roty, double *rotz)
+            {
+                double sqw;
+                double sqx;
+                double sqy;
+                double sqz;
+                
+                double rotxrad;
+                double rotyrad;
+                double rotzrad;
+                
+                sqw = w * w;
+                sqx = x * x;
+                sqy = y * y;
+                sqz = z * z;
+                
+                rotxrad = (double)atan2l(2.0 * ( y * z + x * w ) , ( -sqx - sqy + sqz + sqw ));
+                rotyrad = (double)asinl(-2.0 * ( x * z - y * w ));
+                rotzrad = (double)atan2l(2.0 * ( x * y + z * w ) , (  sqx - sqy - sqz + sqw ));
+                
+                *rotx = rotxrad;
+                *roty = rotyrad;
+                *rotz = rotzrad;
+
+                
+                return;
+            }
  
             // Returns the robot location.
             math::Pose GetRobotLocation(void) {
@@ -239,12 +283,21 @@ namespace gazebo
 	                    printf("o.w = %f\n", getmodelstate.response.pose.orientation.w);
                     }
 
+                    double r, p, y = 0.0;
+
+                    QuatToEuler(getmodelstate.response.pose.orientation.x, 
+                        getmodelstate.response.pose.orientation.y,
+                        getmodelstate.response.pose.orientation.z,
+                        getmodelstate.response.pose.orientation.w,
+                        &r, &p, &y);
+
+
                     math::Pose light_pose(getmodelstate.response.pose.position.x, 
                             getmodelstate.response.pose.position.y,
                             light_height,
-                            getmodelstate.response.pose.orientation.x,
-                            getmodelstate.response.pose.orientation.z,
-                            getmodelstate.response.pose.orientation.w);
+                            0,
+                            0,
+                            y);
 
                     return light_pose;
             }

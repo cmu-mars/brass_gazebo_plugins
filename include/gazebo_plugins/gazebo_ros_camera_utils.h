@@ -124,6 +124,8 @@ namespace gazebo
     /// \brief ROS image topic name
     protected: std::string image_topic_name_;
 
+    protected: bool should_publish_ = true;
+
     /// \brief Publish CameraInfo to the ROS topic
     protected: void PublishCameraInfo(ros::Publisher camera_info_publisher);
     protected: void PublishCameraInfo(common::Time &last_update_time);

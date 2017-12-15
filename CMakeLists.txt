@@ -52,11 +52,24 @@ execute_process(COMMAND
 
 catkin_python_setup()
 
+add_service_files(
+  FILES
+  ToggleHeadlamp.srv
+  SetVoltage.srv
+  SetCharging.srv
+  SetKinectMode.srv
+)
+
 generate_dynamic_reconfigure_options(
   cfg/CameraSynchronizer.cfg
   cfg/GazeboRosCamera.cfg
   cfg/GazeboRosOpenniKinect.cfg
   cfg/Hokuyo.cfg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
 )
 
 include_directories(include
@@ -83,18 +96,20 @@ endif()
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS} ${IGNITION-MATH2_CXX_FLAGS} -std=c++11")
 
+
+
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES 
 #  vision_reconfigure 
 #  gazebo_ros_utils 
-#  gazebo_ros_camera_utils 
-#  gazebo_ros_camera 
+ gazebo_ros_camera_utils 
+ gazebo_ros_camera 
 #  gazebo_ros_depth_camera 
    gazebo_ros_openni_kinect  
    gazebo_ros_battery
    gazebo_ros_headlamp
-#  gazebo_ros_laser 
+   gazebo_ros_laser 
 #  gazebo_ros_block_laser 
 #  gazebo_ros_bumper
 #  gazebo_ros_template
@@ -127,9 +142,23 @@ catkin_package(
 )
 add_dependencies(${PROJECT_NAME}_gencfg ${catkin_EXPORTED_TARGETS})
 
+## Executables
+add_executable(hokuyo_node src/hokuyo_node.cpp)
+add_dependencies(hokuyo_node ${PROJECT_NAME}_gencfg)
+target_link_libraries(hokuyo_node
+  ${catkin_LIBRARIES}
+)
 
 add_definitions(-fPIC) # what is this for?
 
+
+add_library(gazebo_ros_camera_utils src/gazebo_ros_camera_utils.cpp)
+add_dependencies(gazebo_ros_camera_utils ${PROJECT_NAME}_gencfg)
+target_link_libraries(gazebo_ros_camera_utils ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_library(gazebo_ros_camera src/gazebo_ros_camera.cpp)
+add_dependencies(gazebo_ros_camera ${PROJECT_NAME}_gencfg)
+target_link_libraries(gazebo_ros_camera gazebo_ros_camera_utils CameraPlugin ${catkin_LIBRARIES})
 
 add_library(gazebo_ros_openni_kinect src/gazebo_ros_openni_kinect.cpp)
 add_dependencies(gazebo_ros_openni_kinect ${PROJECT_NAME}_gencfg)
@@ -140,6 +169,9 @@ target_link_libraries(gazebo_ros_battery ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES})
 
 add_library(gazebo_ros_headlamp src/control_light.cc)
 target_link_libraries(gazebo_ros_headlamp ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES} ${roscpp_LIBRARIES} ${IGNITION-MATH_LIBRARIES})
+
+add_library(gazebo_ros_laser src/gazebo_ros_laser.cpp)
+target_link_libraries(gazebo_ros_laser RayPlugin ${catkin_LIBRARIES})
 
 
 ##
@@ -155,12 +187,13 @@ install(TARGETS
 #  vision_reconfigure
 #  camera_synchronizer
 #  gazebo_ros_utils
-#  gazebo_ros_camera_utils
-#  gazebo_ros_camera
+  gazebo_ros_camera_utils
+  gazebo_ros_camera
 #  gazebo_ros_depth_camera
   gazebo_ros_openni_kinect
   gazebo_ros_battery
   gazebo_ros_headlamp
+  gazebo_ros_laser
 #  gazebo_ros_openni_kinect
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

@@ -16,6 +16,8 @@
 #include "std_msgs/String.h"
 #include "geometry_msgs/Twist.h"
 #include <kobuki_msgs/MotorPower.h>
+#include "brass_gazebo_plugins/SetVoltage.h"
+#include "brass_gazebo_plugins/SetCharging.h"
 
 #include "v_data.cc"
 
@@ -43,8 +45,8 @@ namespace gazebo {
 		std::unique_ptr<ros::NodeHandle> rosNode;
 
 		// ROS subscribers
-		ros::Subscriber set_charging_sub;
-		ros::Subscriber set_voltage_sub;
+		ros::ServiceServer set_charging_srv;
+		ros::ServiceServer set_voltage_srv;
 		ros::Subscriber get_model_state_sub;
 		ros::Subscriber kinect_onoff_sub;
 		ros::Subscriber nuc_utilization_sub;
@@ -198,22 +200,29 @@ namespace gazebo {
 			// the Gazebo node
 			this->rosNode.reset(new ros::NodeHandle("energy_monitor_client"));
 
-			// Create a named topic, and subscribe to it.
-			ros::SubscribeOptions so =
-			  ros::SubscribeOptions::create<std_msgs::Bool>(
-				  "/energy_monitor/set_charging",
-				  1,
-				  boost::bind(&EnergyMonitorPlugin::OnSetChargingMsg, this, _1),
-				  ros::VoidPtr(), &this->rosQueue);
-			this->set_charging_sub = this->rosNode->subscribe(so);
+			this->set_charging_srv =
+				this->rosNode->advertiseService(_model->GetName() + "/set_charging",
+					&EnergyMonitorPlugin::SetCharging, this);
+			this->set_voltage_srv =
+				this->rosNode->advertiseService(_model->GetName() + "/set_voltage",
+					&EnergyMonitorPlugin::SetVoltage, this);
 
-			ros::SubscribeOptions set_voltage_so =
-			  ros::SubscribeOptions::create<std_msgs::Int32>(
-				  "/energy_monitor/set_voltage",
-				  1,
-				  boost::bind(&EnergyMonitorPlugin::OnSetVoltageMsg, this, _1),
-				  ros::VoidPtr(), &this->rosQueue);
-			this->set_voltage_sub = this->rosNode->subscribe(set_voltage_so);
+			// // Create a named topic, and subscribe to it.
+			// ros::SubscribeOptions so =
+			//   ros::SubscribeOptions::create<std_msgs::Bool>(
+			// 	  "/energy_monitor/set_charging",
+			// 	  1,
+			// 	  boost::bind(&EnergyMonitorPlugin::OnSetChargingMsg, this, _1),
+			// 	  ros::VoidPtr(), &this->rosQueue);
+			// this->set_charging_sub = this->rosNode->subscribe(so);
+
+			// ros::SubscribeOptions set_voltage_so =
+			//   ros::SubscribeOptions::create<std_msgs::Int32>(
+			// 	  "/energy_monitor/set_voltage",
+			// 	  1,
+			// 	  boost::bind(&EnergyMonitorPlugin::OnSetVoltageMsg, this, _1),
+			// 	  ros::VoidPtr(), &this->rosQueue);
+			// this->set_voltage_sub = this->rosNode->subscribe(set_voltage_so);
 
 			ros::SubscribeOptions get_model_state_so = 
 				ros::SubscribeOptions::create<geometry_msgs::Twist>(
@@ -334,6 +343,28 @@ namespace gazebo {
 			gzdbg << "received voltage " << voltage << "\n";
 #endif
 			lock.unlock();
+		}
+
+		bool SetVoltage(brass_gazebo_plugins::SetVoltage::Request& req,
+						brass_gazebo_plugins::SetVoltage::Response& res) {
+			lock.lock();
+			auto voltage = req.charge;
+			cur_charge = charge_of_voltage(voltage);
+			res.result = true;
+#ifdef ENERGY_MONITOR_DEBUG
+			gzdbg << "received voltage " << voltage << "\n";
+#endif
+			lock.unlock();
+			return true;
+		}
+
+		bool SetCharging(brass_gazebo_plugins::SetCharging::Request& req,
+						 brass_gazebo_plugins::SetCharging::Response& res) {
+			lock.lock();
+			charging = req.charging;
+			lock.unlock();
+			res.result = true;
+			return true;
 		}
 
 		void OnGetModelState(const geometry_msgs::TwistConstPtr &twist) {

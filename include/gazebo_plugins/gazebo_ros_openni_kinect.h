@@ -47,7 +47,7 @@
 #include <gazebo/plugins/DepthCameraPlugin.hh>
 
 // dynamic reconfigure stuff
-#include <gazebo_plugins/GazeboRosOpenniKinectConfig.h>
+#include <brass_gazebo_plugins/GazeboRosOpenniKinectConfig.h>
 #include <dynamic_reconfigure/server.h>
 
 // boost stuff
@@ -55,6 +55,7 @@
 
 // camera stuff
 #include <gazebo_plugins/gazebo_ros_camera_utils.h>
+#include <brass_gazebo_plugins/SetKinectMode.h>
 
 namespace gazebo
 {
@@ -142,13 +143,10 @@ namespace gazebo
 
     private: event::ConnectionPtr load_connection_;
 
-    protected: bool sensor_on_;
-    private: ros::Subscriber kinect_onoff_sub_;
-    protected: void sensorOnOffCallback(const std_msgs::Bool::ConstPtr& msg);
+    protected: int8_t sensor_mode_;
+    private: ros::ServiceServer sensor_mode_srv_;
+    protected: bool SetSensorMode(brass_gazebo_plugins::SetKinectMode::Request& req, brass_gazebo_plugins::SetKinectMode::Response& res);
 
-    protected: bool depth_image_on_;
-    private: ros::Subscriber depth_image_onoff_sub_;
-    protected: void depthImageOnOffCallback(const std_msgs::Bool::ConstPtr& msg);
   };
 
 }

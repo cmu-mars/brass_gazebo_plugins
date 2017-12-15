@@ -49,6 +49,7 @@ GZ_REGISTER_SENSOR_PLUGIN(GazeboRosLaser)
 // Constructor
 GazeboRosLaser::GazeboRosLaser()
 {
+  ROS_INFO_STREAM("BRASS Hokuyo Plugin loaded");
   this->seed = 0;
 }
 
@@ -112,7 +113,6 @@ void GazeboRosLaser::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
   // ros callback queue for processing subscription
   this->deferred_load_thread_ = boost::thread(
     boost::bind(&GazeboRosLaser::LoadThread, this));
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -147,6 +147,7 @@ void GazeboRosLaser::LoadThread()
       ros::VoidPtr(), NULL);
     this->pub_ = this->rosnode_->advertise(ao);
     this->pub_queue_ = this->pmq.addPub<sensor_msgs::LaserScan>();
+    ROS_INFO_NAMED("laser", "Lase Plugin leaving LoadThread");
   }
 
   // Initialize the controller
@@ -160,10 +161,12 @@ void GazeboRosLaser::LoadThread()
 void GazeboRosLaser::LaserConnect()
 {
   this->laser_connect_count_++;
-  if (this->laser_connect_count_ == 1)
+  if (this->laser_connect_count_ == 1) {
+    ROS_INFO_NAMED("laser", "Connecting to %s", this->parent_ray_sensor_->Topic().c_str());
     this->laser_scan_sub_ =
       this->gazebo_node_->Subscribe(this->parent_ray_sensor_->Topic(),
                                     &GazeboRosLaser::OnScan, this);
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -181,6 +184,7 @@ void GazeboRosLaser::OnScan(ConstLaserScanStampedPtr &_msg)
 {
   // We got a new message from the Gazebo sensor.  Stuff a
   // corresponding ROS message and publish it.
+  //ROS_INFO_NAMED("laser", "Got a new scan");
   sensor_msgs::LaserScan laser_msg;
   laser_msg.header.stamp = ros::Time(_msg->time().sec(), _msg->time().nsec());
   laser_msg.header.frame_id = this->frame_name_;
@@ -200,5 +204,6 @@ void GazeboRosLaser::OnScan(ConstLaserScanStampedPtr &_msg)
             _msg->scan().intensities().end(),
             laser_msg.intensities.begin());
   this->pub_queue_->push(laser_msg, this->pub_);
+  //ROS_INFO_NAMED("laser", "Published new scan");
 }
 }
