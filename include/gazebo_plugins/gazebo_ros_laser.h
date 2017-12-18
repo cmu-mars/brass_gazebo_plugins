@@ -39,6 +39,8 @@
 #include <gazebo_plugins/gazebo_ros_utils.h>
 
 #include <gazebo_plugins/PubQueue.h>
+#include "brass_gazebo_plugins/SetLidarMode.h"
+
 
 namespace gazebo
 {
@@ -95,6 +97,11 @@ namespace gazebo
 
     /// \brief prevents blocking
     private: PubMultiQueue pmq;
+
+    protected: bool sensor_mode_;
+    private: ros::ServiceServer sensor_mode_srv_;
+    protected: bool SetSensorMode(brass_gazebo_plugins::SetLidarMode::Request& req, brass_gazebo_plugins::SetLidarMode::Response& res);
+
   };
 }
 #endif

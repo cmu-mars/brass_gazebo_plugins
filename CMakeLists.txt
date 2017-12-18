@@ -58,6 +58,7 @@ add_service_files(
   SetVoltage.srv
   SetCharging.srv
   SetKinectMode.srv
+  SetLidarMode.srv
 )
 
 generate_dynamic_reconfigure_options(
@@ -95,7 +96,6 @@ if (NOT GAZEBO_VERSION VERSION_LESS 7.3)
 endif()
 
 #set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS} ${IGNITION-MATH2_CXX_FLAGS} -std=c++11")
-
 
 
 catkin_package(
@@ -140,6 +140,9 @@ catkin_package(
   camera_info_manager
   std_msgs
 )
+
+
+
 add_dependencies(${PROJECT_NAME}_gencfg ${catkin_EXPORTED_TARGETS})
 
 ## Executables
@@ -165,12 +168,15 @@ add_dependencies(gazebo_ros_openni_kinect ${PROJECT_NAME}_gencfg)
 target_link_libraries(gazebo_ros_openni_kinect gazebo_ros_camera_utils DepthCameraPlugin ${catkin_LIBRARIES})
 
 add_library(gazebo_ros_battery SHARED src/energy_monitor.cc)
+add_dependencies(gazebo_ros_battery ${PROJECT_NAME}_gencfg)
 target_link_libraries(gazebo_ros_battery ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES})
 
 add_library(gazebo_ros_headlamp src/control_light.cc)
+add_dependencies(gazebo_ros_headlamp ${PROJECT_NAME}_gencfg)
 target_link_libraries(gazebo_ros_headlamp ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES} ${roscpp_LIBRARIES} ${IGNITION-MATH_LIBRARIES})
 
 add_library(gazebo_ros_laser src/gazebo_ros_laser.cpp)
+add_dependencies(gazebo_ros_laser ${PROJECT_NAME}_gencfg)
 target_link_libraries(gazebo_ros_laser RayPlugin ${catkin_LIBRARIES})
 
 

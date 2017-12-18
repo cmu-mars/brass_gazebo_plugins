@@ -39,6 +39,7 @@
 #include <tf/transform_listener.h>
 
 #include <gazebo_plugins/gazebo_ros_laser.h>
+#include "brass_gazebo_plugins/SetLidarMode.h"
 
 namespace gazebo
 {
@@ -99,6 +100,14 @@ void GazeboRosLaser::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
   else
     this->topic_name_ = this->sdf->Get<std::string>("topicName");
 
+  if (!this->sdf->HasElement("mode"))
+  {
+    this->sensor_mode_ = true;
+  }
+  else {
+    this->sensor_mode_ = sdf->GetElement("mode")->Get<bool>();
+  }
+
   this->laser_connect_count_ = 0;
 
     // Make sure the ROS node for Gazebo has already been initialized
@@ -109,7 +118,7 @@ void GazeboRosLaser::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
     return;
   }
 
-  ROS_INFO_NAMED("laser", "Starting Laser Plugin (ns = %s)", this->robot_namespace_.c_str() );
+  ROS_INFO_STREAM("Starting Laser Plugin (ns = " << this->robot_namespace_.c_str() << "), mode=" << this->sensor_mode_?"true":"false");
   // ros callback queue for processing subscription
   this->deferred_load_thread_ = boost::thread(
     boost::bind(&GazeboRosLaser::LoadThread, this));
@@ -154,6 +163,8 @@ void GazeboRosLaser::LoadThread()
 
   // sensor generation off by default
   this->parent_ray_sensor_->SetActive(false);
+
+  this->sensor_mode_srv_ = this->rosnode_->advertiseService("/mobile_base/lidar/mode", &GazeboRosLaser::SetSensorMode, this);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -185,6 +196,7 @@ void GazeboRosLaser::OnScan(ConstLaserScanStampedPtr &_msg)
   // We got a new message from the Gazebo sensor.  Stuff a
   // corresponding ROS message and publish it.
   //ROS_INFO_NAMED("laser", "Got a new scan");
+  if (!this->sensor_mode_) return;
   sensor_msgs::LaserScan laser_msg;
   laser_msg.header.stamp = ros::Time(_msg->time().sec(), _msg->time().nsec());
   laser_msg.header.frame_id = this->frame_name_;
@@ -206,4 +218,12 @@ void GazeboRosLaser::OnScan(ConstLaserScanStampedPtr &_msg)
   this->pub_queue_->push(laser_msg, this->pub_);
   //ROS_INFO_NAMED("laser", "Published new scan");
 }
+
+
+bool GazeboRosLaser::SetSensorMode(brass_gazebo_plugins::SetLidarMode::Request& req, brass_gazebo_plugins::SetLidarMode::Response& res) {
+  ROS_INFO_STREAM("Setting lidar mode to " << std::to_string(req.mode));
+  this->sensor_mode_ = req.mode;
+  return true;
+}
+
 }

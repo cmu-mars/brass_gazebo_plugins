@@ -104,11 +104,12 @@ void GazeboRosOpenniKinect::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sd
   else
     this->point_cloud_cutoff_max_ = _sdf->GetElement("pointCloudCutoffMax")->Get<double>();
 
-  if (!_sdf->HasElement("startState"))
+  if (!_sdf->HasElement("mode"))
     this->sensor_mode_ = brass_gazebo_plugins::SetKinectModeRequest::ON;
   else
-    this->sensor_mode_ = _sdf->GetElement("startState")->Get<int8_t>();
+    this->sensor_mode_ = _sdf->GetElement("mode")->Get<int>();
 
+  ROS_INFO_STREAM("BRASS Kinect Plucing loaded with mode: " << std::to_string(this->sensor_mode_));
 
   load_connection_ = GazeboRosCameraUtils::OnLoad(boost::bind(&GazeboRosOpenniKinect::Advertise, this));
   GazeboRosCameraUtils::Load(_parent, _sdf);
