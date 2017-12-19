@@ -179,7 +179,6 @@ add_library(gazebo_ros_laser src/gazebo_ros_laser.cpp)
 add_dependencies(gazebo_ros_laser ${PROJECT_NAME}_gencfg)
 target_link_libraries(gazebo_ros_laser RayPlugin ${catkin_LIBRARIES})
 
-
 ##
 ## Add your new plugin here
 ##

@@ -147,6 +147,12 @@ namespace gazebo
     private: ros::ServiceServer sensor_mode_srv_;
     protected: bool SetSensorMode(brass_gazebo_plugins::SetKinectMode::Request& req, brass_gazebo_plugins::SetKinectMode::Response& res);
 
+    protected: int fov_;
+    protected: ros::Publisher light_sensor_pub_;
+    protected: void LightSensorConnect();
+    protected: void LightSensorDisconnect();
+    protected: void PutLightSensorData(const unsigned char* _image,unsigned int _width, unsigned int _height);
+    private: int light_connect_count = 0;
   };
 
 }
