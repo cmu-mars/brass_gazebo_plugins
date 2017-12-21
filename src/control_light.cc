@@ -142,17 +142,22 @@ namespace gazebo
                     point.SetFromString("<?xml version='1.0' ?>\
                         <sdf version='1.6'>\
                         <!-- Light Source -->\
-                        <light name='Turtlebot_headlamp' type='point'>\
+                        <light name='Turtlebot_headlamp' type='spot'>\
                                 <pose>1 1 1 0 0 0</pose>\
                                 <diffuse>0.5 0.5 0.5 1</diffuse>\
                                 <specular>0.1 0.1 0.1 1</specular>\
                                 <attenuation>\
-                                    <range>20</range>\
+                                    <range>5</range>\
                                     <constant>0.5</constant>\
-                                    <linear>0.01</linear>\
-                                    <quadratic>0.001</quadratic>\
+                                    <linear>0.1</linear>\
+                                    <quadratic>0.03</quadratic>\
                                 </attenuation>\
                                 <cast_shadows>0</cast_shadows>\
+                                <spot>\
+                                    <inner_angle>1.54</inner_angle>\
+                                    <outer_angle>1.54</outer_angle>\
+                                    <falloff>1</falloff>\
+                                </spot>\
                         </light>\
                         </sdf>");
 
@@ -283,8 +288,8 @@ namespace gazebo
 	                    printf("o.w = %f\n", getmodelstate.response.pose.orientation.w);
                     }
 
-                    double r, p, y = 0.0;
-
+                    double p, y = 0.0;
+                    double r = 0;
                     QuatToEuler(getmodelstate.response.pose.orientation.x, 
                         getmodelstate.response.pose.orientation.y,
                         getmodelstate.response.pose.orientation.z,
@@ -295,9 +300,9 @@ namespace gazebo
                     math::Pose light_pose(getmodelstate.response.pose.position.x, 
                             getmodelstate.response.pose.position.y,
                             light_height,
+                            1.54,
                             0,
-                            0,
-                            y);
+                            y - 1.54);
 
                     return light_pose;
             }
