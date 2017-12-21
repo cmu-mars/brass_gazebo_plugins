@@ -31,6 +31,7 @@
 #include <gazebo/sensors/Sensor.hh>
 #include <sdf/sdf.hh>
 #include <gazebo/sensors/SensorTypes.hh>
+#include "std_msgs/Int8.h"
 
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <sensor_msgs/Illuminance.h>
@@ -162,6 +163,14 @@ void GazeboRosOpenniKinect::Advertise()
 
 
   this->light_sensor_pub_ = this->rosnode_->advertise(light_sensor_ao);
+
+  ros::AdvertiseOptions kinect_status_ao =
+    ros::AdvertiseOptions::create<std_msgs::Int8>("/mobile_base/kinect/status", 1,
+      boost::bind (&GazeboRosOpenniKinect::StatusConnect, this),
+      boost::bind (&GazeboRosOpenniKinect::StatusDisconnect, this),
+      ros::VoidPtr(), &this->camera_queue_);
+
+  this->status_pub_ = this->rosnode_->advertise(kinect_status_ao);
  }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -182,18 +191,27 @@ void GazeboRosOpenniKinect::PointCloudDisconnect()
     this->parentSensor->SetActive(false);
 }
 
+
+void GazeboRosOpenniKinect::StatusConnect() 
+{
+  this->status_connect_count_++;
+  this->parentSensor->SetActive(true);
+}
+
+void GazeboRosOpenniKinect::StatusDisconnect()
+{
+  this->status_connect_count_--;
+}
+
 void GazeboRosOpenniKinect::LightSensorConnect()
 {
   this->light_connect_count++;
-  (*this->image_connect_count_)++;
   this->parentSensor->SetActive(true);
 }
 
 void GazeboRosOpenniKinect::LightSensorDisconnect() {
   this->light_connect_count--;
-  (*this->image_connect_count_)--;
-  if (this->light_connect_count <= 0)
-    this->parentSensor->SetActive(false);
+  
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -270,10 +288,17 @@ void GazeboRosOpenniKinect::OnNewImageFrame(const unsigned char *_image,
     return;
   }
 
+  this->PutLightSensorData(_image, _width, _height);
 
 
   //ROS_ERROR_NAMED("openni_kinect", "camera_ new frame %s %s",this->parentSensor_->Name().c_str(),this->frame_name_.c_str());
   this->sensor_update_time_ = this->parentSensor_->LastMeasurementTime();
+  if (this->last_status_update_ + 1 < this->sensor_update_time_.Float() ) {
+    this->last_status_update_ = this->sensor_update_time_;
+    std_msgs::Int8 v_msg;
+    v_msg.data = this->sensor_mode_;
+    this->status_pub_.publish(v_msg);
+  }
 
   if (this->parentSensor->IsActive())
   {
@@ -286,11 +311,11 @@ void GazeboRosOpenniKinect::OnNewImageFrame(const unsigned char *_image,
     }
     else
     {
+
       if ((*this->image_connect_count_) > 0) {
         if (this->sensor_mode_ != brass_gazebo_plugins::SetKinectModeRequest::OFF) {
             this->PutCameraData(_image);
         }
-        this->PutLightSensorData(_image, _width, _height);
       }
 
     }

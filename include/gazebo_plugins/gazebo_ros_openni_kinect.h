@@ -153,6 +153,12 @@ namespace gazebo
     protected: void LightSensorDisconnect();
     protected: void PutLightSensorData(const unsigned char* _image,unsigned int _width, unsigned int _height);
     private: int light_connect_count = 0;
+
+    protected: ros::Publisher status_pub_;
+    protected: void StatusConnect() ;
+    protected: void StatusDisconnect();
+    private: int status_connect_count_ = 0;
+    private: common::Time last_status_update_;
   };
 
 }

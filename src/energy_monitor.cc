@@ -10,6 +10,7 @@
 #include "ros/ros.h"
 #include "ros/callback_queue.h"
 #include "ros/subscribe_options.h"
+#include "std_msgs/Int8.h"
 #include "std_msgs/Int32.h"
 #include "std_msgs/Float64.h"
 #include "std_msgs/Bool.h"
@@ -233,8 +234,8 @@ namespace gazebo {
 			this->get_model_state_sub = this->rosNode->subscribe(get_model_state_so);
 
 			ros::SubscribeOptions kinect_onoff_so = 
-				ros::SubscribeOptions::create<std_msgs::Bool>(
-						"/sensor/kinect/onoff",
+				ros::SubscribeOptions::create<std_msgs::Int8>(
+						"/mobile_base/kinect/status",
 						1,
 						boost::bind(&EnergyMonitorPlugin::OnKinectOnOffMsg, this, _1),
 						ros::VoidPtr(), &this->rosQueue);
@@ -380,10 +381,10 @@ namespace gazebo {
 			lock.unlock();
 		}
 
-		void OnKinectOnOffMsg(const std_msgs::BoolConstPtr &msg) {
+		void OnKinectOnOffMsg(const std_msgs::Int8ConstPtr &msg) {
 			lock.lock();
 			auto s = msg->data;
-			if (s) {
+			if (s > 0) {
 #ifdef ENERGY_MONITOR_DEBUG
 				gzdbg << "kinect on" << "\n";
 #endif

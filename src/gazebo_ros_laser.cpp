@@ -35,6 +35,8 @@
 #include <gazebo/sensors/SensorTypes.hh>
 #include <gazebo/transport/transport.hh>
 
+#include "std_msgs/Bool.h"
+
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 
@@ -68,6 +70,7 @@ void GazeboRosLaser::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
 {
   // load plugin
   RayPlugin::Load(_parent, this->sdf);
+  this->parentSensor_ = _parent;
   // Get the world name.
   std::string worldName = _parent->WorldName();
   this->world_ = physics::get_world(worldName);
@@ -165,6 +168,14 @@ void GazeboRosLaser::LoadThread()
   this->parent_ray_sensor_->SetActive(false);
 
   this->sensor_mode_srv_ = this->rosnode_->advertiseService("/mobile_base/lidar/mode", &GazeboRosLaser::SetSensorMode, this);
+
+  ros::AdvertiseOptions lidar_status_ao =
+    ros::AdvertiseOptions::create<std_msgs::Bool>("/mobile_base/lidar/status", 1,
+      boost::bind (&GazeboRosLaser::StatusConnect, this),
+      boost::bind (&GazeboRosLaser::StatusDisconnect, this),
+      ros::VoidPtr(), NULL);
+
+  this->status_pub_ = this->rosnode_->advertise(lidar_status_ao);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -189,10 +200,29 @@ void GazeboRosLaser::LaserDisconnect()
     this->laser_scan_sub_.reset();
 }
 
+void GazeboRosLaser::StatusConnect() 
+{
+  this->status_connect_count_++;
+  this->parentSensor_->SetActive(true);
+}
+
+void GazeboRosLaser::StatusDisconnect()
+{
+  this->status_connect_count_--;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Convert new Gazebo message to ROS message and publish it
 void GazeboRosLaser::OnScan(ConstLaserScanStampedPtr &_msg)
 {
+  
+  common::Time sensor_update_time_ = this->parentSensor_->LastMeasurementTime();
+  if (last_status_update_ + 1 < sensor_update_time_.Float() ) {
+    this->last_status_update_ = sensor_update_time_;
+    std_msgs::Bool v_msg;
+    v_msg.data = this->sensor_mode_;
+    this->status_pub_.publish(v_msg);
+  }
   // We got a new message from the Gazebo sensor.  Stuff a
   // corresponding ROS message and publish it.
   //ROS_INFO_NAMED("laser", "Got a new scan");
