@@ -28,6 +28,7 @@
 #include <gazebo/plugins/CameraPlugin.hh>
 
 #include <gazebo_plugins/gazebo_ros_camera_utils.h>
+#include "brass_gazebo_plugins/SetCameraMode.h"
 
 namespace gazebo
 {
@@ -48,6 +49,20 @@ namespace gazebo
     protected: virtual void OnNewFrame(const unsigned char *_image,
                    unsigned int _width, unsigned int _height,
                    unsigned int _depth, const std::string &_format);
+
+        private: event::ConnectionPtr load_connection_;
+
+     protected: void Advertise();
+
+    protected: bool sensor_mode_=true;
+    private: ros::ServiceServer sensor_mode_srv_;
+    protected: bool SetCameraMode(brass_gazebo_plugins::SetCameraMode::Request& req, brass_gazebo_plugins::SetCameraMode::Response& res);
+
+    protected: ros::Publisher status_pub_;
+    protected: void StatusConnect();
+    protected: void StatusDisconnect();
+    private: int status_connect_count_ = 0;
+    private: common::Time last_status_update_;
   };
 }
 #endif

@@ -29,6 +29,9 @@
 #include <gazebo/sensors/Sensor.hh>
 #include <gazebo/sensors/CameraSensor.hh>
 #include <gazebo/sensors/SensorTypes.hh>
+#include "std_msgs/Bool.h"
+#include "brass_gazebo_plugins/SetCameraMode.h"
+
 
 namespace gazebo
 {
@@ -50,6 +53,8 @@ GazeboRosCamera::~GazeboRosCamera()
 
 void GazeboRosCamera::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
 {
+  ROS_INFO_STREAM("BRASS Camera Plugin Loading");
+
   // Make sure the ROS node for Gazebo has already been initialized
   if (!ros::isInitialized())
   {
@@ -67,9 +72,37 @@ void GazeboRosCamera::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
   this->format_ = this->format;
   this->camera_ = this->camera;
 
-  GazeboRosCameraUtils::Load(_parent, _sdf);
+  ROS_INFO_STREAM("BRASS Camera Plugin loaded with mode: " << std::to_string(this->sensor_mode_));
+  load_connection_ = GazeboRosCameraUtils::OnLoad(boost::bind(&GazeboRosCamera::Advertise, this));
+
+   GazeboRosCameraUtils::Load(_parent, _sdf);
 }
 
+
+
+void GazeboRosCamera::Advertise() 
+{
+  this->sensor_mode_srv_ = this->rosnode_->advertiseService("/mobile_base/camera/mode", &GazeboRosCamera::SetCameraMode, this);
+
+  ros::AdvertiseOptions camera_status_ao =
+    ros::AdvertiseOptions::create<std_msgs::Bool>("/mobile_base/camera/status", 1,
+      boost::bind (&GazeboRosCamera::StatusConnect, this),
+      boost::bind (&GazeboRosCamera::StatusDisconnect, this),
+      ros::VoidPtr(), NULL);
+
+  this->status_pub_ = this->rosnode_->advertise(camera_status_ao);
+}
+
+void GazeboRosCamera::StatusConnect() 
+{
+  this->status_connect_count_++;
+  this->parentSensor_->SetActive(true);
+}
+
+void GazeboRosCamera::StatusDisconnect()
+{
+  this->status_connect_count_--;
+}
 ////////////////////////////////////////////////////////////////////////////////
 // Update the controller
 void GazeboRosCamera::OnNewFrame(const unsigned char *_image,
@@ -77,6 +110,13 @@ void GazeboRosCamera::OnNewFrame(const unsigned char *_image,
     const std::string &_format)
 {
   common::Time sensor_update_time = this->parentSensor_->LastMeasurementTime();
+if (last_status_update_ + 1 < sensor_update_time_.Float() ) {
+    this->last_status_update_ = sensor_update_time_;
+    std_msgs::Bool v_msg;
+    v_msg.data = this->sensor_mode_;
+    this->status_pub_.publish(v_msg);
+  }
+    if (!this->sensor_mode_) return;
 
   if (!this->parentSensor->IsActive())
   {
@@ -103,5 +143,11 @@ void GazeboRosCamera::OnNewFrame(const unsigned char *_image,
       }
     }
   }
+}
+
+bool GazeboRosCamera::SetCameraMode(brass_gazebo_plugins::SetCameraMode::Request& req, brass_gazebo_plugins::SetCameraMode::Response& res) {
+  ROS_INFO_STREAM("Setting camera mode to " << std::to_string(req.mode));
+  this->sensor_mode_ = req.mode;
+  return true;
 }
 }

@@ -59,6 +59,7 @@ add_service_files(
   SetCharging.srv
   SetKinectMode.srv
   SetLidarMode.srv
+  SetCameraMode.srv
 )
 
 generate_dynamic_reconfigure_options(
