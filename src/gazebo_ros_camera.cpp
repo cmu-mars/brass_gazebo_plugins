@@ -50,6 +50,7 @@ GazeboRosCamera::~GazeboRosCamera()
 
 void GazeboRosCamera::Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf)
 {
+  ROS_INFO_STREAM("BRASS Camera Plugin Loading");
   // Make sure the ROS node for Gazebo has already been initialized
   if (!ros::isInitialized())
   {
