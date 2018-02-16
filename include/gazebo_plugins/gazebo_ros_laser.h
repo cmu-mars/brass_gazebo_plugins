@@ -39,6 +39,8 @@
 #include <gazebo_plugins/gazebo_ros_utils.h>
 
 #include <gazebo_plugins/PubQueue.h>
+#include "brass_gazebo_plugins/SetLidarMode.h"
+
 
 namespace gazebo
 {
@@ -53,6 +55,8 @@ namespace gazebo
     /// \brief Load the plugin
     /// \param take in SDF root element
     public: void Load(sensors::SensorPtr _parent, sdf::ElementPtr _sdf);
+
+    private: sensors::SensorPtr parentSensor_;
 
     /// \brief Keep track of number of connctions
     private: int laser_connect_count_;
@@ -95,6 +99,17 @@ namespace gazebo
 
     /// \brief prevents blocking
     private: PubMultiQueue pmq;
+
+    protected: bool sensor_mode_;
+    private: ros::ServiceServer sensor_mode_srv_;
+    protected: bool SetSensorMode(brass_gazebo_plugins::SetLidarMode::Request& req, brass_gazebo_plugins::SetLidarMode::Response& res);
+
+    
+    protected: ros::Publisher status_pub_;
+    protected: void StatusConnect() ;
+    protected: void StatusDisconnect();
+    private: int status_connect_count_ = 0;
+    private: common::Time last_status_update_;
   };
 }
 #endif

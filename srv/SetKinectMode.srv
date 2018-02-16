@@ -1,0 +1,7 @@
+# request constants
+int8 ON=1
+int8 OFF=0
+int8 DEPTH_ONLY=2
+int8 mode
+---
+bool result

@@ -12,6 +12,7 @@
 #include "gazebo_msgs/SetModelState.h"
 #include "gazebo_msgs/GetModelState.h" 
 #include "gazebo_msgs/ModelState.h"
+#include "brass_gazebo_plugins/ToggleHeadlamp.h"
 
 namespace gazebo
 {
@@ -29,6 +30,8 @@ namespace gazebo
             // A ROS subscriber
             ros::Subscriber mRosSub;
 
+            ros::ServiceServer mRosSrv;
+
             // A ROS callbackqueue that helps process messages
             ros::CallbackQueue mRosQueue;
 
@@ -36,83 +39,73 @@ namespace gazebo
             std::thread mRosQueueThread;
 
             // Whether to show the light or not
-            bool mShowLight;
+            bool mShowLight = false;
 
             // Pointer to the light in the world
             physics::LightPtr mLightPtr;
 
             // Name of the light
-            std::string mLightName;
+            std::string mLightName = "Turtlebot_headlamp";
 
             // Which model to attach the light
-            std::string mAttchedModel;
+            std::string mAttchedModel = "mobile_base";
 
             // Height of the light
-            double mHeightOffset;
+            double mHeightOffset = 1;
 
             // ROS topic for this plugin
-            std::string mRosTopic;
-
-            // Debug message flag
-            bool mDebug;
+            std::string mRosTopic = "/toggle_headlamp";
 
             // Debug message flag for deeper debug
-            bool mDebugMore;
+            bool mDebugMore = false;
 
         public:
-            ControlLight(): mModel(NULL), 
-                        mUpdateConnection(NULL),
-                        mShowLight(false),
-                        mLightPtr (NULL),
-                        mLightName("Turtlebot_headlamp"),
-                        mAttchedModel("mobile_base"),
-                        mHeightOffset(1),
-                        mRosTopic("/toggle_headlamp"),
-                        mDebug(true),
-                        mDebugMore(false) {
-                if (mDebug) {
-                    printf("Plugin ControlLight Initialized\n");
-                    printf("Show Light = %d\n", mShowLight);
-                }
+            ControlLight(): ModelPlugin() {
+                ROS_INFO_STREAM("BRASS Headlamp loaded");
+            }
+
+            ~ControlLight() {
+                this->mRosNode->shutdown();
+                this->mRosNode.reset();
             }
 
             void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
                 // Store the pointer to the model
-                this->mModel = _parent;
-                
-                if (mDebug) {
-                    printf("Loading ControlLight Plugin\n");
-                    printf("Plugin attched to model %s\n",
-                            (this->mModel->GetName()).c_str());
-                }
+                this->mModel = _parent; 
+                ROS_INFO_STREAM("BRASS Headlamp attached to model " << this->mModel/*->GetName().c_str()*/);
+            
       
                 // Listen to the update event. This event is broadcast every
                 // simulation iteration.
                 this->mUpdateConnection = event::Events::ConnectWorldUpdateBegin(
                     boost::bind(&ControlLight::OnUpdate, this, _1));
 
+                this->mRosNode.reset (new ros::NodeHandle(this->mModel->GetName() + "/headlamp"));
+                ROS_INFO_STREAM("Topic: " << this->mModel->GetName() << mRosTopic);
                 // Initialize ros, if it has not already bee initialized.
-                if (!ros::isInitialized()) {
-                    int argc = 0;
-                    char **argv = NULL;
-                    ros::init(argc, argv, "gazebo_client",
-                    ros::init_options::NoSigintHandler);
-                }
 
-                // Create our ROS node. This acts in a similar manner to
-                // the Gazebo node
-                this->mRosNode.reset(new ros::NodeHandle("gazebo_client"));
 
                 // Create a named topic, and subscribe to it.
                 // Command line to send the message
                 // rostopic pub /ground_plane_0/toggle_light std_msgs/Empty
-                ros::SubscribeOptions so =
-                    ros::SubscribeOptions::create<std_msgs::Bool>(
-                    "/" + this->mModel->GetName() + mRosTopic, 1,
-                    boost::bind(&ControlLight::OnRosMsg, this, _1),
-                    ros::VoidPtr(), &this->mRosQueue);
+                // ros::SubscribeOptions so =
+                //     ros::SubscribeOptions::create<std_msgs::Bool>(
+                //     "/" + this->mModel->GetName() + mRosTopic, 1,
+                //     boost::bind(&ControlLight::OnRosMsg, this, _1),
+                //     ros::VoidPtr(), &this->mRosQueue);
        
-                this->mRosSub = this->mRosNode->subscribe(so);
+                // this->mRosSub = this->mRosNode->subscribe(so);
+                // ros::ServiceServer headlamp = 
+                //     this->mRosNode->advertiseService<brass_gazebo_plugins::ToggleHeadlamp::Request,brass_gazebo_plugins::ToggleHeadlamp::Response>
+                //                             ("/gazebo/toggle_headlamp", 
+                //                             boost::bind(&ControlLight::ToggleHeadlamp, this, 
+                //                             (brass_gazebo_plugins::ToggleHeadlamp::Request& )_1,
+                //                             (brass_gazebo_plugins::ToggleHeadlamp::Response& )_2));
+                ros::ServiceServer headlamp =
+                    this->mRosNode->advertiseService("/mobile_base/headlamp",
+                                    &ControlLight::ToggleHeadlamp, this);
+
+                this->mRosSrv = headlamp;
 
                 // Spin up the queue helper thread.
                 this->mRosQueueThread =
@@ -126,59 +119,66 @@ namespace gazebo
                     // TODO explore this APIs.
                     //mLightPtr->PlaceOnEntity(mAttchedModel);
 	            }
+    
             }
 
+            bool ToggleHeadlamp(brass_gazebo_plugins::ToggleHeadlamp::Request& req,
+                                brass_gazebo_plugins::ToggleHeadlamp::Response& res) {
+                mShowLight = req.enablement;
+                res.result = this->doToggle(mShowLight);
+                return res.result;
+            }
 
-            // Handle an incoming message from ROS
-            // TODO BUG consitency issues between GUI 
-            // and command line control of light
-            void OnRosMsg(const std_msgs::BoolConstPtr &_msg) {
-                if (mDebug) printf("Entered ControlLight::OnRosMsg\n");
-	
-	            mShowLight = _msg->data;
-	            physics::WorldPtr worldPtr = this->mModel->GetWorld();
+            bool doToggle(bool mShowLight) {
+                ROS_INFO_STREAM("Toggling the Headlamp(" << mShowLight << ")");
+                physics::WorldPtr worldPtr = this->mModel->GetWorld();
             
                 if (mShowLight) {
-                    if (mDebug) printf("Adding Light\n");
+                    gzdbg << "Adding Light\n";
 
                     sdf::SDF point;
 
                     // TODO make values custmizable e.g., use mLightName
-		            point.SetFromString("<?xml version='1.0' ?>\
-			            <sdf version='1.6'>\
-  			            <!-- Light Source -->\
-  			            <light name='Turtlebot_light' type='point'>\
-      				            <pose>1 1 1 0 0 0</pose>\
-      				            <diffuse>0.5 0.5 0.5 1</diffuse>\
-      				            <specular>0.1 0.1 0.1 1</specular>\
-     				            <attenuation>\
-        				            <range>20</range>\
-        				            <constant>0.5</constant>\
-        				            <linear>0.01</linear>\
-        				            <quadratic>0.001</quadratic>\
-      				            </attenuation>\
-      				            <cast_shadows>0</cast_shadows>\
-  			            </light>\
-			            </sdf>");
+                    point.SetFromString("<?xml version='1.0' ?>\
+                        <sdf version='1.6'>\
+                        <!-- Light Source -->\
+                        <light name='Turtlebot_headlamp' type='spot'>\
+                                <pose>1 1 1 0 0 0</pose>\
+                                <diffuse>0.5 0.5 0.5 1</diffuse>\
+                                <specular>0.1 0.1 0.1 1</specular>\
+                                <attenuation>\
+                                    <range>5</range>\
+                                    <constant>0.5</constant>\
+                                    <linear>0.1</linear>\
+                                    <quadratic>0.03</quadratic>\
+                                </attenuation>\
+                                <cast_shadows>0</cast_shadows>\
+                                <spot>\
+                                    <inner_angle>1.54</inner_angle>\
+                                    <outer_angle>1.54</outer_angle>\
+                                    <falloff>1</falloff>\
+                                </spot>\
+                        </light>\
+                        </sdf>");
 
-		            sdf::ElementPtr light = point.Root()->GetElement("light");
-		            msgs::Light msg = gazebo::msgs::LightFromSDF(light);
-		
-		            transport::NodePtr node(new transport::Node());
-		            node->Init(worldPtr->GetName());
+                    sdf::ElementPtr light = point.Root()->GetElement("light");
+                    msgs::Light msg = gazebo::msgs::LightFromSDF(light);
+        
+                    transport::NodePtr node(new transport::Node());
+                    node->Init(worldPtr->GetName());
 
-		            transport::PublisherPtr lightPub 
-			            = node->Advertise<msgs::Light>("~/factory/light");
-		            lightPub->Publish(msg);
+                    transport::PublisherPtr lightPub 
+                        = node->Advertise<msgs::Light>("~/factory/light");
+                    lightPub->Publish(msg);
                 
-                    // Hack Make sure light is attached to the model.
-                    sleep(5);
+                    while ((mLightPtr = worldPtr->Light(mLightName)) == NULL) {
+                        sleep(0.5);
+                    }
 
-                    mLightPtr = worldPtr->Light(mLightName);
                     assert(mLightPtr != NULL);
                     mLightPtr->PlaceOnEntity(mAttchedModel);
                 } else if (mLightPtr != NULL) {
-                    if (mDebug) printf("Deleting Light\n");
+                    gzdbg << "Deleting Light\n";
 
                     // TODO Explore these APIs rather than deleting the model
                     // mLightPtr->ProcessMsg(msg);
@@ -188,15 +188,21 @@ namespace gazebo
                     worldPtr->RemoveModel(mLightName);
                     mLightPtr = NULL;
                 } else {
-                    assert(false);
+                    return false;
                 }
 
-                if (mDebug) {
-		            unsigned int light_count = worldPtr->Lights().size();
-      	            printf("Light count = %d\n", light_count);
-                }
+                gzdbg << "Light count = " << worldPtr->Lights().size();
+                return true;
             }
 
+            // Handle an incoming message from ROS
+            // TODO BUG consitency issues between GUI 
+            // and command line control of light
+            void OnRosMsg(const std_msgs::BoolConstPtr &_msg) {
+                 ROS_INFO_STREAM("Entered ControlLight::OnRosMessage");
+	
+                 this->doToggle(_msg->data);
+            }
             /* // TODO Customize sdf string
             private std::string GetSDFForLight() {
                 math::Pose pose = GetRobotLocation();
@@ -231,6 +237,34 @@ namespace gazebo
             }*/
 
         private:
+
+            void QuatToEuler(const double x, const double y, const double z, const double w, double *rotx,  double *roty, double *rotz)
+            {
+                double sqw;
+                double sqx;
+                double sqy;
+                double sqz;
+                
+                double rotxrad;
+                double rotyrad;
+                double rotzrad;
+                
+                sqw = w * w;
+                sqx = x * x;
+                sqy = y * y;
+                sqz = z * z;
+                
+                rotxrad = (double)atan2l(2.0 * ( y * z + x * w ) , ( -sqx - sqy + sqz + sqw ));
+                rotyrad = (double)asinl(-2.0 * ( x * z - y * w ));
+                rotzrad = (double)atan2l(2.0 * ( x * y + z * w ) , (  sqx - sqy - sqz + sqw ));
+                
+                *rotx = rotxrad;
+                *roty = rotyrad;
+                *rotz = rotzrad;
+
+                
+                return;
+            }
  
             // Returns the robot location.
             math::Pose GetRobotLocation(void) {
@@ -254,12 +288,21 @@ namespace gazebo
 	                    printf("o.w = %f\n", getmodelstate.response.pose.orientation.w);
                     }
 
+                    double p, y = 0.0;
+                    double r = 0;
+                    QuatToEuler(getmodelstate.response.pose.orientation.x, 
+                        getmodelstate.response.pose.orientation.y,
+                        getmodelstate.response.pose.orientation.z,
+                        getmodelstate.response.pose.orientation.w,
+                        &r, &p, &y);
+
+
                     math::Pose light_pose(getmodelstate.response.pose.position.x, 
                             getmodelstate.response.pose.position.y,
                             light_height,
-                            getmodelstate.response.pose.orientation.x,
-                            getmodelstate.response.pose.orientation.z,
-                            getmodelstate.response.pose.orientation.w);
+                            1.54,
+                            0,
+                            y - 1.54);
 
                     return light_pose;
             }
