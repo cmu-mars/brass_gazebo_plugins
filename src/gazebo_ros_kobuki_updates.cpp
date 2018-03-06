@@ -256,16 +256,16 @@ void GazeboRosKobuki::calculateBumps(double relative_contact_angle)
   if ((relative_contact_angle <= (M_PI/2)) && (relative_contact_angle > (M_PI/6)))
   {
     bumper_left_is_pressed_ = true;
-    ROS_INFO_STREAM("Left Bumper pressed");
+    // ROS_INFO_STREAM("Left Bumper pressed");
   }
   else if ((relative_contact_angle <= (M_PI/6)) && (relative_contact_angle >= (-M_PI/6)))
   {
     bumper_center_is_pressed_ = true;
-    ROS_INFO_STREAM("Center Bumper pressed");
+    // ROS_INFO_STREAM("Center Bumper pressed");
   }
   else if ((relative_contact_angle < (-M_PI/6)) && (relative_contact_angle >= (-M_PI/2)))
   {
-    ROS_INFO_STREAM("Right Bumper pressed");
+    // ROS_INFO_STREAM("Right Bumper pressed");
     bumper_right_is_pressed_ = true;
   }
 }
@@ -302,7 +302,7 @@ void GazeboRosKobuki::updateBumper()
       // using the force normals below, since the contact position is given in world coordinates
       // also negating the normal, because it points from contact to robot centre
       double global_contact_angle = std::atan2(-contacts.contact(i).normal(0).y(), -contacts.contact(i).normal(0).x());
-      // double relative_contact_angle = global_contact_angle - robot_heading;
+      double relative_contact_angle = global_contact_angle - robot_heading;
       // ROS_INFO_STREAM("#Contact " << i << ", rel_contact_pos=" << rel_contact_pos);
       // ROS_INFO_STREAM("global_contact_angle=" << global_contact_angle << ", relative_contact_angle=" << relative_contact_angle);
       calculateBumps(relative_contact_angle);
