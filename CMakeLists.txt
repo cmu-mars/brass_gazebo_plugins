@@ -55,7 +55,7 @@ catkin_python_setup()
 add_service_files(
   FILES
   ToggleHeadlamp.srv
-  SetVoltage.srv
+  SetCharge.srv
   SetCharging.srv
   SetKinectMode.srv
   SetLidarMode.srv

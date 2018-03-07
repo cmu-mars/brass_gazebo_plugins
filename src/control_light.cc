@@ -59,6 +59,11 @@ namespace gazebo
             // Debug message flag for deeper debug
             bool mDebugMore = false;
 
+            ros::Publisher mStatusPub;
+
+            double mLastUpdateTime;
+            physics::WorldPtr world;
+
         public:
             ControlLight(): ModelPlugin() {
                 ROS_INFO_STREAM("BRASS Headlamp loaded");
@@ -72,6 +77,7 @@ namespace gazebo
             void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
                 // Store the pointer to the model
                 this->mModel = _parent; 
+                this->world = _parent->GetWorld();
                 ROS_INFO_STREAM("BRASS Headlamp attached to model " << this->mModel/*->GetName().c_str()*/);
             
       
@@ -107,9 +113,12 @@ namespace gazebo
 
                 this->mRosSrv = headlamp;
 
+                this->mStatusPub = this->mRosNode->advertise<std_msgs::Bool>("/mobile_base/headlamp/status",1);
+
                 // Spin up the queue helper thread.
                 this->mRosQueueThread =
                     std::thread(std::bind(&ControlLight::QueueThread, this));
+                mLastUpdateTime =  this->world->GetSimTime().Double();
             }
 
             // Called by the world update start event
@@ -119,6 +128,13 @@ namespace gazebo
                     // TODO explore this APIs.
                     //mLightPtr->PlaceOnEntity(mAttchedModel);
 	            }
+                double time = this->world->GetSimTime().Double();
+                if (mLastUpdateTime+1 < time) {
+                    mLastUpdateTime = time;
+                    std_msgs::Bool v_msg;
+                    v_msg.data = mShowLight;
+                    this->mStatusPub.publish(v_msg);
+                }
     
             }
 
