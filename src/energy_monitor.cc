@@ -32,7 +32,6 @@ namespace gazebo {
 #ifdef ENERGY_MONITOR_DEBUG
 					gzdbg << "Constructed energy_monitor." << "\n";
 #endif
-		ROS_INFO_STREAM("BRASS Energy Monitor loaded");
             }
 
 		~EnergyMonitorPlugin() {
@@ -363,6 +362,8 @@ namespace gazebo {
 			// Spin up the queue helper thread.
 			this->rosQueueThread =
 			  std::thread(std::bind(&EnergyMonitorPlugin::QueueThread, this));
+			ROS_INFO_STREAM("BRASS Energy Monitor loaded, battery_capacity=" << battery_capacity);
+
 #ifdef ENERGY_MONITOR_DEBUG
 			gzdbg << "Loaded energy_monitor." << "\n";
 #endif
