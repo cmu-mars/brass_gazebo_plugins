@@ -373,8 +373,10 @@ namespace gazebo {
 			// Update time
 			double curr_time = this->world->GetSimTime().Double(); // measured in seconds
 			double dt = curr_time - last_time; 
+			if (dt < 1.0) return;
 			last_time = curr_time;
 		    
+
 			if (charging) {
 				cur_charge += charge_rate * multiplier * dt;
 			} else {
