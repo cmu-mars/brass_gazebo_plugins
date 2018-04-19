@@ -203,19 +203,19 @@ namespace gazebo {
 				battery_capacity = _sdf->GetElement("battery_capacity")->Get<double>();
 			}
 			if (_sdf->HasElement("coeff_fullspeed")) {
-				delta_base_FULLSPEED = _sdf->GetElement("coeff_fullspeed")->Get<double>();
+				delta_base_FULLSPEED = _sdf->GetElement("coeff_fullspeed")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("coeff_halfspeed")) {
-				delta_base_HALFSPEED = _sdf->GetElement("coeff_halfspeed")->Get<double>();
+				delta_base_HALFSPEED = _sdf->GetElement("coeff_halfspeed")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("coeff_fullspeed_rot")) {
-				delta_base_FULLSPEEDR = _sdf->GetElement("coeff_fullspeed_rot")->Get<double>();
+				delta_base_FULLSPEEDR = _sdf->GetElement("coeff_fullspeed_rot")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("coeff_halfspeed_rot")) {
-				delta_base_HALFSPEEDR = _sdf->GetElement("coeff_halfspeed_rot")->Get<double>();
+				delta_base_HALFSPEEDR = _sdf->GetElement("coeff_halfspeed_rot")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("coeff_safespeed")) {
-				delta_base_SAFESPEED = _sdf->GetElement("coeff_safespeed")->Get<double>();
+				delta_base_SAFESPEED = _sdf->GetElement("coeff_safespeed")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("fullspeed_threshold")) {
 				v_FULL_thresh = _sdf->GetElement("fullspeed_threshold")->Get<double>();
@@ -233,25 +233,25 @@ namespace gazebo {
 				z_HALF_thresh = _sdf->GetElement("halfspeed_rot_threshold")->Get<double>();
 			}
 			if (_sdf->HasElement("coeff_kinect_on")) {
-				delta_kinect_USED = _sdf->GetElement("coeff_kinect_on")->Get<double>();
+				delta_kinect_USED = _sdf->GetElement("coeff_kinect_on")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("coeff_kinect_off")) {
-				delta_kinect_UNUSED = _sdf->GetElement("coeff_kinect_off")->Get<double>();
+				delta_kinect_UNUSED = _sdf->GetElement("coeff_kinect_off")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("coeff_lidar_on")) {
-				delta_lidar_USED = _sdf->GetElement("coeff_lidar_on")->Get<double>();
+				delta_lidar_USED = _sdf->GetElement("coeff_lidar_on")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("coeff_kinect_camera_only")) {
-				delta_kinect_CAMERA_ONLY = _sdf->GetElement("coeff_kinect_camera_only")->Get<double>();
+				delta_kinect_CAMERA_ONLY = _sdf->GetElement("coeff_kinect_camera_only")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("coeff_lidar_off")) {
-				delta_lidar_UNUSED = _sdf->GetElement("coeff_lidar_off")->Get<double>();
+				delta_lidar_UNUSED = _sdf->GetElement("coeff_lidar_off")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("coeff_headlamp_on")) {
-				delta_headlamp_USED = _sdf->GetElement("coeff_headlamp_on")->Get<double>();
+				delta_headlamp_USED = _sdf->GetElement("coeff_headlamp_on")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("coeff_headlamp_off")) {
-				delta_headlamp_UNUSED = _sdf->GetElement("coeff_headlamp_off")->Get<double>();
+				delta_headlamp_UNUSED = _sdf->GetElement("coeff_headlamp_off")->Get<double>() / SEC_PER_HR;
 			}
 			if (_sdf->HasElement("coeff_cpu_utilization")) {
 				coeff_cpu_utilization = _sdf->GetElement("coeff_cpu_utilization")->Get<double>();
