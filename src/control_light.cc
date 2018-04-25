@@ -42,7 +42,8 @@ namespace gazebo
             bool mShowLight = false;
 
             // Pointer to the light in the world
-            physics::LightPtr mLightPtr;
+            physics::LightPtr mLightPtr_f;
+            physics::LightPtr mLightPtr_b;
 
             // Name of the light
             std::string mLightName = "Turtlebot_headlamp";
@@ -59,9 +60,23 @@ namespace gazebo
             // Debug message flag for deeper debug
             bool mDebugMore = false;
 
+            ros::Publisher mStatusPub;
+
+            double mLastUpdateTime;
+            physics::WorldPtr world;
+
+            physics::LinkPtr link;
+            math::Pose* pose_front;
+            math::Pose* pose_back;
+
         public:
             ControlLight(): ModelPlugin() {
                 ROS_INFO_STREAM("BRASS Headlamp loaded");
+                pose_front = new math::Pose(.05, 0, .6,
+                            1.54,
+                            0,
+                            -1.54);
+                pose_back = new math::Pose(-.05, 0, .6, 1.54, 0, 1.54);
             }
 
             ~ControlLight() {
@@ -72,9 +87,13 @@ namespace gazebo
             void Load(physics::ModelPtr _parent, sdf::ElementPtr _sdf) {
                 // Store the pointer to the model
                 this->mModel = _parent; 
+                this->world = _parent->GetWorld();
                 ROS_INFO_STREAM("BRASS Headlamp attached to model " << this->mModel/*->GetName().c_str()*/);
-            
-      
+                
+                link = mModel->GetLink("base_link");
+                if (!link) {
+                    ROS_INFO_STREAM("Link: camera360_link not found!");
+                }
                 // Listen to the update event. This event is broadcast every
                 // simulation iteration.
                 this->mUpdateConnection = event::Events::ConnectWorldUpdateBegin(
@@ -107,18 +126,32 @@ namespace gazebo
 
                 this->mRosSrv = headlamp;
 
+                this->mStatusPub = this->mRosNode->advertise<std_msgs::Bool>("/mobile_base/headlamp/status",1);
+
                 // Spin up the queue helper thread.
                 this->mRosQueueThread =
                     std::thread(std::bind(&ControlLight::QueueThread, this));
+                mLastUpdateTime =  this->world->GetSimTime().Double();
             }
 
             // Called by the world update start event
             void OnUpdate(const common::UpdateInfo & /*_info*/) {
-	            if (mShowLight && mLightPtr != NULL) {
-                    mLightPtr->SetWorldPose((GetRobotLocation()).Ign());
-                    // TODO explore this APIs.
-                    //mLightPtr->PlaceOnEntity(mAttchedModel);
+	            if (mShowLight && mLightPtr_f != NULL && mLightPtr_b != NULL) {
+                    mLightPtr_f->SetWorldPose(*pose_front + mModel->GetWorldPose());
+                    mLightPtr_b->SetWorldPose(*pose_back + mModel->GetWorldPose());
+                    // math::Pose poses [2];
+                    // GetRobotLocation(poses);
+                    // mLightPtr_f->SetWorldPose(poses[0].Ign());
+                    // mLightPtr_b->SetWorldPose(poses[1].Ign());
+                    
 	            }
+                double time = this->world->GetSimTime().Double();
+                if (mLastUpdateTime+1 < time) {
+                    mLastUpdateTime = time;
+                    std_msgs::Bool v_msg;
+                    v_msg.data = mShowLight;
+                    this->mStatusPub.publish(v_msg);
+                }
     
             }
 
@@ -142,15 +175,15 @@ namespace gazebo
                     point.SetFromString("<?xml version='1.0' ?>\
                         <sdf version='1.6'>\
                         <!-- Light Source -->\
-                        <light name='Turtlebot_headlamp' type='spot'>\
+                        <light name='Turtlebot_headlamp_front' type='spot'>\
                                 <pose>1 1 1 0 0 0</pose>\
-                                <diffuse>0.5 0.5 0.5 1</diffuse>\
-                                <specular>0.1 0.1 0.1 1</specular>\
+                                <diffuse>1 1 1 1</diffuse>\
+                                <specular>1 1 1 1</specular>\
                                 <attenuation>\
                                     <range>5</range>\
-                                    <constant>0.5</constant>\
-                                    <linear>0.1</linear>\
-                                    <quadratic>0.03</quadratic>\
+                                    <constant>0.25</constant>\
+                                    <linear>0.0</linear>\
+                                    <quadratic>0.0</quadratic>\
                                 </attenuation>\
                                 <cast_shadows>0</cast_shadows>\
                                 <spot>\
@@ -170,14 +203,45 @@ namespace gazebo
                     transport::PublisherPtr lightPub 
                         = node->Advertise<msgs::Light>("~/factory/light");
                     lightPub->Publish(msg);
-                
-                    while ((mLightPtr = worldPtr->Light(mLightName)) == NULL) {
+
+                    sdf::SDF point2;
+                    point2.SetFromString("<?xml version='1.0' ?>\
+                        <sdf version='1.6'>\
+                        <!-- Light Source -->\
+                        <light name='Turtlebot_headlamp_back' type='spot'>\
+                                <pose>1 1 1 0 0 0</pose>\
+                                <diffuse>1 1 1 1</diffuse>\
+                                <specular>1 1 1 1</specular>\
+                                <attenuation>\
+                                    <range>5</range>\
+                                    <constant>0.25</constant>\
+                                    <linear>0.0</linear>\
+                                    <quadratic>0.0</quadratic>\
+                                </attenuation>\
+                                <cast_shadows>0</cast_shadows>\
+                                <spot>\
+                                    <inner_angle>1.54</inner_angle>\
+                                    <outer_angle>1.54</outer_angle>\
+                                    <falloff>1</falloff>\
+                                </spot>\
+                        </light>\
+                        </sdf>");
+                    light = point2.Root()->GetElement("light");
+                    msg = gazebo::msgs::LightFromSDF(light);        
+                    lightPub->Publish(msg);
+                    while ((mLightPtr_f = worldPtr->Light(mLightName+"_front")) == NULL) {
                         sleep(0.5);
                     }
 
-                    assert(mLightPtr != NULL);
-                    mLightPtr->PlaceOnEntity(mAttchedModel);
-                } else if (mLightPtr != NULL) {
+                    assert(mLightPtr_f != NULL);
+                    mLightPtr_f->PlaceOnEntity(mAttchedModel);
+                    while ((mLightPtr_b = worldPtr->Light(mLightName+"_back")) == NULL) {
+                        sleep(0.5);
+                    }
+                    assert(mLightPtr_b != NULL);
+                    mLightPtr_b->PlaceOnEntity(mAttchedModel);
+
+                } else if (mLightPtr_f != NULL) {
                     gzdbg << "Deleting Light\n";
 
                     // TODO Explore these APIs rather than deleting the model
@@ -185,8 +249,10 @@ namespace gazebo
                     // mLightPtr->UpdateParameters(light);
                     // TODO ideally we should not delete the model
                     // Instead tweak the diffusion parameter
-                    worldPtr->RemoveModel(mLightName);
-                    mLightPtr = NULL;
+                    worldPtr->RemoveModel(mLightName + "_front");
+                    worldPtr->RemoveModel(mLightName + "_back");
+                    mLightPtr_f = NULL;
+                    mLightPtr_b = NULL;
                 } else {
                     return false;
                 }
@@ -203,109 +269,11 @@ namespace gazebo
 	
                  this->doToggle(_msg->data);
             }
-            /* // TODO Customize sdf string
-            private std::string GetSDFForLight() {
-                math::Pose pose = GetRobotLocation();
-                std::string pose_x = to_string(pose.position.x);
-                std::string pose_y = to_string(pose.position.y);
-                std::string pose_z = to_string(pose.position.z + 1);
-                std::string orient_y = to_string(pose.orientation.y);
-                std::string orient_z = to_string(pose.orientation.z);
-                std::string orient_w = to_string(pose.orientation.w);
-
-                std::string pose_str = pose_x + " " + pose_y
-                    + pose_z + " " + orient_y
-                    + orient_z + " " + orient_w;
-
-                std::string light_sdf = "<?xml version='1.0' ?>\
-			            <sdf version='1.6'>\
-  			            <!-- Light Source -->\
-  			            <light name='Turtlebot_light' type='point'>\
-      				            <pose>" + pose_str + "</pose>\
-      				            <diffuse>0.5 0.5 0.5 1</diffuse>\
-      				            <specular>0.1 0.1 0.1 1</specular>\
-     				            <attenuation>\
-        				            <range>20</range>\
-        				            <constant>0.5</constant>\
-        				            <linear>0.01</linear>\
-        				            <quadratic>0.001</quadratic>\
-      				            </attenuation>\
-      				            <cast_shadows>0</cast_shadows>\
-  			            </light>\
-			            </sdf>";
-                printf("pose_str = %s\n", pose_str.c_str());
-            }*/
+ 
 
         private:
-
-            void QuatToEuler(const double x, const double y, const double z, const double w, double *rotx,  double *roty, double *rotz)
-            {
-                double sqw;
-                double sqx;
-                double sqy;
-                double sqz;
-                
-                double rotxrad;
-                double rotyrad;
-                double rotzrad;
-                
-                sqw = w * w;
-                sqx = x * x;
-                sqy = y * y;
-                sqz = z * z;
-                
-                rotxrad = (double)atan2l(2.0 * ( y * z + x * w ) , ( -sqx - sqy + sqz + sqw ));
-                rotyrad = (double)asinl(-2.0 * ( x * z - y * w ));
-                rotzrad = (double)atan2l(2.0 * ( x * y + z * w ) , (  sqx - sqy - sqz + sqw ));
-                
-                *rotx = rotxrad;
-                *roty = rotyrad;
-                *rotz = rotzrad;
-
-                
-                return;
-            }
  
-            // Returns the robot location.
-            math::Pose GetRobotLocation(void) {
-                    geometry_msgs::Pose pose;
-                    ros::ServiceClient gms_c 
-                            = this->mRosNode->serviceClient<gazebo_msgs::GetModelState>("/gazebo/get_model_state");
-            
-                    gazebo_msgs::GetModelState getmodelstate;
-                    getmodelstate.request.model_name = mAttchedModel;
-                    gms_c.call(getmodelstate);
-	            
-                    double light_height = getmodelstate.response.pose.position.z + mHeightOffset;
  
-                    if (mDebugMore) { 
-                        printf("p.x = %f\n", getmodelstate.response.pose.position.x);
-	                    printf("p.y = %f\n", getmodelstate.response.pose.position.y);
-	                    printf("p.z = %f\n", getmodelstate.response.pose.position.z);
-	                    printf("o.x = %f\n", getmodelstate.response.pose.orientation.x);
-	                    printf("o.y = %f\n", getmodelstate.response.pose.orientation.y);
-	                    printf("o.z = %f\n", getmodelstate.response.pose.orientation.z);
-	                    printf("o.w = %f\n", getmodelstate.response.pose.orientation.w);
-                    }
-
-                    double p, y = 0.0;
-                    double r = 0;
-                    QuatToEuler(getmodelstate.response.pose.orientation.x, 
-                        getmodelstate.response.pose.orientation.y,
-                        getmodelstate.response.pose.orientation.z,
-                        getmodelstate.response.pose.orientation.w,
-                        &r, &p, &y);
-
-
-                    math::Pose light_pose(getmodelstate.response.pose.position.x, 
-                            getmodelstate.response.pose.position.y,
-                            light_height,
-                            1.54,
-                            0,
-                            y - 1.54);
-
-                    return light_pose;
-            }
             
             /// ROS helper function that processes messages
             void QueueThread() {

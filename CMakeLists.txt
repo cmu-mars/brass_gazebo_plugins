@@ -55,7 +55,7 @@ catkin_python_setup()
 add_service_files(
   FILES
   ToggleHeadlamp.srv
-  SetVoltage.srv
+  SetCharge.srv
   SetCharging.srv
   SetKinectMode.srv
   SetLidarMode.srv
@@ -111,6 +111,7 @@ catkin_package(
    gazebo_ros_battery
    gazebo_ros_headlamp
    gazebo_ros_laser 
+  gazebo_ros_kobuki
 #  gazebo_ros_block_laser 
 #  gazebo_ros_bumper
 #  gazebo_ros_template
@@ -179,6 +180,9 @@ target_link_libraries(gazebo_ros_headlamp ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES}
 add_library(gazebo_ros_laser src/gazebo_ros_laser.cpp)
 add_dependencies(gazebo_ros_laser ${PROJECT_NAME}_gencfg)
 target_link_libraries(gazebo_ros_laser RayPlugin ${catkin_LIBRARIES})
+
+add_library(gazebo_ros_kobuki src/gazebo_ros_kobuki.cpp src/gazebo_ros_kobuki_updates.cpp src/gazebo_ros_kobuki_loads.cpp src/gazebo_ros_utils.cpp)
+target_link_libraries(gazebo_ros_kobuki ${GAZEBO_LIBRARIES} ${catkin_LIBRARIES})
 
 ##
 ## Add your new plugin here
