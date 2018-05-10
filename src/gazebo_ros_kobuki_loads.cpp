@@ -351,6 +351,10 @@ void GazeboRosKobuki::setupRosApi(std::string& model_name)
   bumper_event_pub_ = gazebo_ros_->node()->advertise<kobuki_msgs::BumperEvent>(bumper_topic, 1);
   ROS_INFO("%s: Advertise Bumper[%s]!", gazebo_ros_->info(), bumper_topic.c_str());
 
+  std::string bumper_vel_topic = base_prefix + "/events/bumper_vel";
+  bumper_event_vel_pub_ = gazebo_ros_->node()->advertise<nav_msgs::Odometry>(bumper_vel_topic, 1);
+  ROS_INFO("%s: Advertise Bumper Bump Velocity[%s]!", gazebo_ros_->info(), bumper_vel_topic.c_str());
+
   // IMU
   std::string imu_topic = base_prefix + "/sensors/imu_data";
   imu_pub_ = gazebo_ros_->node()->advertise<sensor_msgs::Imu>(imu_topic, 1);

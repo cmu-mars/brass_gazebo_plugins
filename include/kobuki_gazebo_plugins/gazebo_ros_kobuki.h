@@ -237,6 +237,8 @@ private:
   /// ROS subscriber for reseting the odometry data
   ros::Subscriber odom_reset_sub_;
 
+  ros::Publisher bumper_event_vel_pub_;
+
 
 
 };
