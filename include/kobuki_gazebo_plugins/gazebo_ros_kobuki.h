@@ -62,6 +62,7 @@
 #include <kobuki_msgs/MotorPower.h>
 #include <kobuki_msgs/CliffEvent.h>
 #include <kobuki_msgs/BumperEvent.h>
+#include <brass_gazebo_plugins/BrassBump.h>
 
 namespace gazebo
 {
@@ -182,6 +183,8 @@ private:
   ros::Publisher odom_pub_;
   /// ROS message for odometry data
   nav_msgs::Odometry odom_;
+
+  brass_gazebo_plugins::BrassBump brass_bump_;
   /// Flag for (not) publish tf transform for odom -> robot
   bool publish_tf_;
   /// TF transform publisher for the odom frame

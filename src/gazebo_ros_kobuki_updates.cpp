@@ -325,7 +325,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::PRESSED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::LEFT;
     bumper_event_pub_.publish(bumper_event_);
-    bumper_event_vel_pub_.publish(odom_);
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::PRESSED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::LEFT;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
   else if (!bumper_left_is_pressed_ && bumper_left_was_pressed_)
   {
@@ -333,8 +336,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::RELEASED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::LEFT;
     bumper_event_pub_.publish(bumper_event_);
-    bumper_event_vel_pub_.publish(odom_);
-
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::RELEASED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::LEFT;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
   if (bumper_center_is_pressed_ && !bumper_center_was_pressed_)
   {
@@ -342,8 +347,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::PRESSED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::CENTER;
     bumper_event_pub_.publish(bumper_event_);
-    bumper_event_vel_pub_.publish(odom_);
-
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::PRESSED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::CENTER;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
   else if (!bumper_center_is_pressed_ && bumper_center_was_pressed_)
   {
@@ -351,8 +358,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::RELEASED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::CENTER;
     bumper_event_pub_.publish(bumper_event_);
-    bumper_event_vel_pub_.publish(odom_);
-
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::RELEASED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::CENTER;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
   if (bumper_right_is_pressed_ && !bumper_right_was_pressed_)
   {
@@ -360,8 +369,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::PRESSED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::RIGHT;
     bumper_event_pub_.publish(bumper_event_);
-    bumper_event_vel_pub_.publish(odom_);
-
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::PRESSED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::RIGHT;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
   else if (!bumper_right_is_pressed_ && bumper_right_was_pressed_)
   {
@@ -369,8 +380,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::RELEASED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::RIGHT;
     bumper_event_pub_.publish(bumper_event_);
-    bumper_event_vel_pub_.publish(odom_);
-
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::RELEASED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::RIGHT;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
 }
 }

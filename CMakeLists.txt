@@ -52,6 +52,11 @@ execute_process(COMMAND
 
 catkin_python_setup()
 
+add_message_files(
+  FILES
+  BrassBump.msg
+)
+
 add_service_files(
   FILES
   ToggleHeadlamp.srv
