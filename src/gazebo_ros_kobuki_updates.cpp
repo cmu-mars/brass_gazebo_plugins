@@ -306,7 +306,14 @@ void GazeboRosKobuki::updateBumper()
       // ROS_INFO_STREAM("#Contact " << i << ", rel_contact_pos=" << rel_contact_pos);
       // ROS_INFO_STREAM("global_contact_angle=" << global_contact_angle << ", relative_contact_angle=" << relative_contact_angle);
       calculateBumps(relative_contact_angle);
-      calculateBumps(relative_contact_angle-M_PI);  
+      double nrca = relative_contact_angle-M_PI;
+      if (nrca > M_PI) {
+        nrca = nrca - 2*M_PI;
+      }
+      else if (nrca < -M_PI) {
+        nrca = nrca + 2*M_PI;
+      }
+      calculateBumps(nrca);  
     }
     
   }
@@ -318,6 +325,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::PRESSED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::LEFT;
     bumper_event_pub_.publish(bumper_event_);
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::PRESSED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::LEFT;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
   else if (!bumper_left_is_pressed_ && bumper_left_was_pressed_)
   {
@@ -325,6 +336,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::RELEASED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::LEFT;
     bumper_event_pub_.publish(bumper_event_);
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::RELEASED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::LEFT;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
   if (bumper_center_is_pressed_ && !bumper_center_was_pressed_)
   {
@@ -332,6 +347,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::PRESSED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::CENTER;
     bumper_event_pub_.publish(bumper_event_);
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::PRESSED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::CENTER;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
   else if (!bumper_center_is_pressed_ && bumper_center_was_pressed_)
   {
@@ -339,6 +358,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::RELEASED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::CENTER;
     bumper_event_pub_.publish(bumper_event_);
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::RELEASED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::CENTER;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
   if (bumper_right_is_pressed_ && !bumper_right_was_pressed_)
   {
@@ -346,6 +369,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::PRESSED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::RIGHT;
     bumper_event_pub_.publish(bumper_event_);
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::PRESSED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::RIGHT;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
   else if (!bumper_right_is_pressed_ && bumper_right_was_pressed_)
   {
@@ -353,6 +380,10 @@ void GazeboRosKobuki::updateBumper()
     bumper_event_.state = kobuki_msgs::BumperEvent::RELEASED;
     bumper_event_.bumper = kobuki_msgs::BumperEvent::RIGHT;
     bumper_event_pub_.publish(bumper_event_);
+    brass_bump_.state = brass_gazebo_plugins::BrassBump::RELEASED;
+    brass_bump_.bumper = brass_gazebo_plugins::BrassBump::RIGHT;
+    brass_bump_.velocity = odom_.twist.twist.linear.x;
+    bumper_event_vel_pub_.publish(brass_bump_);
   }
 }
 }
